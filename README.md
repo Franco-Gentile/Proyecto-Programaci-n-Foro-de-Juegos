@@ -1,170 +1,228 @@
-# Proyecto-Programacion-Foro-de-Juegos
-Puesta en marcha del backend con Django y Django REST Framework
-Objetivo
-En este primer trabajo practico vamos a crear la base del proyecto backend. La idea es dejar preparado un entorno de desarrollo funcional con Django y Django REST Framework, de forma que al finalizar ya podamos levantar el servidor local, entrar al panel de administracion y tener una estructura inicial sobre la cual seguir construyendo el resto del sistema.
+# Proyecto: Plataforma web de foro gamer y comunidad de videojuegos
 
-Este TP es importante porque todo lo que hagamos mas adelante va a apoyarse sobre esta base: modelos, autenticacion, endpoints, documentacion, pruebas y conexion con el frontend.
-Que vamos a construir
-Durante la cursada vamos a desarrollar una aplicacion web completa. En una primera etapa vamos a trabajar sobre el backend, que sera el encargado de:
+## Descripción
+Este proyecto consiste en una aplicación web tipo foro orientada a la comunidad gamer, donde los usuarios pueden registrarse, iniciar sesión y participar en distintos espacios de discusión sobre videojuegos.
 
-almacenar la informacion en la base de datos,
-exponer una API REST,
-administrar usuarios,
-y responder a las peticiones del frontend.
+La plataforma permite a los jugadores interactuar entre sí para:
 
-En este TP no vamos a desarrollar toda la logica de negocio todavia. Vamos a dejar listo el proyecto para comenzar a hacerlo en los siguientes trabajos practicos.
-Requisitos previos
-Antes de comenzar, verificar que el equipo tenga instalado:
+- ayudar a otros usuarios (principiantes o avanzados),
+- compartir experiencias,
+- socializar dentro de la comunidad,
+- publicar contenido como imágenes o aportes relacionados a juegos.
 
-Python 3
-pip
-Visual Studio Code o un editor equivalente
-Git
-Una cuenta de GitHub o una plataforma similar para alojar el repositorio
+Además, el sistema cuenta con moderadores que supervisan el contenido para garantizar un ambiente seguro y organizado, evitando spam, contenido inapropiado o fuera de tema.
 
-Para comprobar que Python y pip estan disponibles, se puede ejecutar:
+---
 
-python --version
+## Objetivos del proyecto
 
-pip --version
-Entregables
-Al finalizar este trabajo practico se espera tener:
+### Objetivo general
+Desarrollar una plataforma web que permita a los usuarios interactuar en una comunidad gamer mediante publicaciones, comentarios y contenido multimedia.
 
-un repositorio creado y clonado localmente,
-un entorno virtual funcionando,
-Django y DRF instalados,
-el proyecto backend creado,
-una aplicacion base creada dentro del proyecto,
-las migraciones iniciales aplicadas,
-un superusuario creado,
-el servidor funcionando en local,
-y un README.md con los pasos de instalacion y ejecucion.
-Paso 1: Crear el repositorio
-Crear un nuevo repositorio en GitHub con el nombre del proyecto que se va a utilizar durante la cursada.
+### Objetivos específicos
+- Implementar registro e inicio de sesión de usuarios.
+- Permitir la creación de publicaciones (posts).
+- Permitir comentar en publicaciones.
+- Permitir subir imágenes en los posts.
+- Crear un sistema de moderación de contenido.
+- Clasificar publicaciones por juegos o categorías.
+- Permitir interacción social entre usuarios.
+- Garantizar una experiencia amigable tanto para principiantes como jugadores avanzados.
 
-Este sera el unico repositorio del proyecto completo. En el mismo repositorio se ira construyendo primero el backend y mas adelante tambien el frontend.
+---
 
-Luego clonarlo en la maquina local:
+## Alcance del sistema
 
-git clone <URL_DEL_REPOSITORIO>
+### Funcionalidades principales
+- Registro de usuario  
+- Inicio de sesión  
+- Cierre de sesión  
+- Crear publicación (post)  
+- Editar publicación  
+- Eliminar publicación  
+- Ver listado de publicaciones  
+- Comentar en publicaciones  
+- Subir imágenes a los posts  
+- Sistema de categorías (por juego o temática)  
+- Sistema de moderación (reportes / eliminación de contenido)  
+- Dashboard básico del usuario (sus publicaciones, actividad)  
 
-cd <NOMBRE_DEL_REPOSITORIO>
+---
 
-Este paso sirve para empezar a versionar el proyecto desde el inicio y mantener un historial ordenado de cambios.
+## Tipos de contenido posibles
+- Texto (preguntas, guías, opiniones)  
+- Imágenes (screenshots, memes, ayudas visuales)  
+- Enlaces externos (videos, tutoriales, etc.)  
 
-Mas adelante, cuando se cree React, no se abrira un repositorio nuevo: el frontend se agregara dentro de este mismo proyecto, normalmente en una carpeta llamada frontend/.
-Paso 2: Crear y activar un entorno virtual
-Dentro de la carpeta del proyecto, crear un entorno virtual:
+---
 
-python -m venv venv
+## Modelo de datos
 
-Activarlo:
+### Entidades principales
 
-source venv/bin/activate
+### 1. User
+Representa al usuario registrado en el sistema.
 
-Si estas trabajando en Windows con PowerShell, el comando puede variar:
+**Atributos sugeridos:**
+- id  
+- username  
+- email  
+- password_hash  
+- role (USER / MODERATOR / ADMIN)  
+- created_at  
+- updated_at  
 
-venv\Scripts\Activate.ps1
+---
 
-Usamos un entorno virtual para aislar las dependencias del proyecto y evitar conflictos con otros desarrollos instalados en la misma computadora.
-Paso 3: Instalar las dependencias iniciales
-Con el entorno activado, instalar las herramientas base del backend:
+### 2. Post
+Representa una publicación dentro del foro.
 
-pip install django djangorestframework django-cors-headers drf-spectacular
+**Atributos sugeridos:**
+- id  
+- user_id  
+- title  
+- content  
+- category_id  
+- created_at  
+- updated_at  
+- is_deleted  
 
-Luego guardar esas dependencias en un archivo requirements.txt:
+---
 
-pip freeze > requirements.txt
+### 3. Comment
+Representa los comentarios dentro de una publicación.
 
-Estas librerias cumplen las siguientes funciones:
+**Atributos sugeridos:**
+- id  
+- post_id  
+- user_id  
+- content  
+- created_at  
+- updated_at  
+- is_deleted  
 
-django: framework principal del backend.
-djangorestframework: permite construir APIs REST.
-django-cors-headers: permite controlar el acceso desde otros origenes, por ejemplo el frontend en React.
-drf-spectacular: se utilizara mas adelante para documentar la API.
-Paso 4: Crear el proyecto Django
-Crear el proyecto principal en la raiz del repositorio:
+---
 
-django-admin startproject config .
+### 4. Category
+Representa una categoría o juego dentro del foro.
 
-El punto final indica que el proyecto se crea en la carpeta actual.
+**Atributos sugeridos:**
+- id  
+- name  
+- description  
 
-Despues de este paso deberian aparecer archivos como:
+**Ejemplos:**
+- Counter Strike  
+- League of Legends  
+- Fortnite  
+- General  
 
-manage.py
-carpeta config/
-Paso 5: Crear una aplicacion base
-Crear una app inicial llamada core:
+---
 
-python manage.py startapp core
+### 5. Image
+Representa imágenes subidas por los usuarios.
 
-En Django, un proyecto puede tener varias apps. Cada app suele agrupar una parte de la logica del sistema. En este caso comenzamos con una app base sobre la que luego podremos organizar el resto de funcionalidades.
-Paso 6: Registrar las aplicaciones necesarias en settings.py
-Abrir el archivo config/settings.py y agregar en INSTALLED_APPS:
+**Atributos sugeridos:**
+- id  
+- post_id  
+- image_url  
+- created_at  
 
-INSTALLED_APPS = [
+---
 
-    ...,
+### 6. Report
+Representa denuncias hechas por usuarios o moderadores.
 
-    'rest_framework',
+**Atributos sugeridos:**
+- id  
+- reported_by (user_id)  
+- post_id (opcional)  
+- comment_id (opcional)  
+- reason  
+- created_at  
+- status (PENDING / REVIEWED / DELETED)  
 
-    'corsheaders',
+---
 
-    'drf_spectacular',
+## Relaciones entre entidades
 
-    'core',
+### Relación conceptual
 
-]
+- Un **User** puede tener muchos **Post**  
+- Un **User** puede tener muchos **Comment**  
+- Un **Post** puede tener muchos **Comment**  
+- Un **Post** pertenece a una **Category**  
+- Un **Post** puede tener muchas **Image**  
+- Un **Report** puede estar asociado a un **Post** o a un **Comment**  
 
-Tambien agregar el middleware de CORS:
+---
 
-MIDDLEWARE = [
+## Diagrama simple de relaciones
+User
+├── 1:N ── Post
+│ ├── 1:N ── Comment
+│ └── 1:N ── Image
+│
+├── 1:N ── Comment
+│
+└── 1:N ── Report
 
-    'corsheaders.middleware.CorsMiddleware',
+Category
+└── 1:N ── Post
 
-    ...,
+---
 
-]
+## Roles del sistema
 
-Y configurar un origen permitido para desarrollo local:
+### Usuario
+- Crear publicaciones  
+- Comentar  
+- Subir imágenes  
+- Reportar contenido  
 
-CORS_ALLOWED_ORIGINS = [
+### Moderador
+- Eliminar publicaciones o comentarios  
+- Revisar reportes  
+- Controlar contenido inapropiado  
 
-    'http://localhost:3000',
+### Administrador (opcional)
+- Gestionar usuarios  
+- Asignar roles  
+- Configurar categorías  
 
-]
+---
 
-Mas adelante esto permitira que el frontend pueda comunicarse con el backend sin problemas de CORS.
-Paso 7: Aplicar las migraciones iniciales
-Ejecutar:
+## Posible implementación
 
-python manage.py migrate
+### Tecnologías sugeridas
 
-Esto crea las tablas iniciales que Django necesita para funcionar, por ejemplo las relacionadas con usuarios, permisos y administracion.
+**Frontend:**
+- HTML, CSS, JavaScript  
+- React (opcional)
 
-En esta primera etapa Django usara su configuracion por defecto, que normalmente trabaja con SQLite. Esto nos permite comprobar rapidamente que el proyecto arranca y que el entorno esta bien preparado.
+**Backend:**
+- Node.js + Express  
+- o Python + Django  
+- o Java + Spring Boot  
 
-En el proximo TP vamos a reemplazar esa base por PostgreSQL, que sera la base principal del proyecto.
-Paso 8: Crear un superusuario
-Ejecutar:
+**Base de datos:**
+- MySQL / PostgreSQL  
 
-python manage.py createsuperuser
+**Almacenamiento de imágenes:**
+- Cloudinary / Firebase Storage / servidor propio  
 
-Completar los datos solicitados por consola.
+---
 
-Este usuario permitira ingresar al panel de administracion de Django y gestionar informacion del sistema.
-Paso 9: Levantar el servidor local
-Iniciar el servidor de desarrollo:
+## Flujo básico del sistema
 
-python manage.py runserver
+1. El usuario se registra o inicia sesión.  
+2. Puede navegar por categorías o juegos.  
+3. Crea una publicación o responde a otras.  
+4. Puede subir imágenes en sus posts.  
+5. Otros usuarios interactúan (comentarios).  
+6. Moderadores controlan el contenido.  
 
-Si todo esta correcto, el backend deberia quedar disponible en:
+---
 
-http://127.0.0.1:8000/
-
-Y el panel de administracion en:
-
-http://127.0.0.1:8000/admin/
-
-Ingresar con el superusuario creado en el paso anterior para verificar que el sistema funciona correctamente.
-
+## About
+Plataforma web orientada a la comunidad gamer para compartir conocimiento, experiencias y socializar dentro del mundo de los videojuegos.
