@@ -1,0 +1,191 @@
+# Documentación del Proyecto Django - Foro de Juegos
+
+Este documento explica la estructura del proyecto y la función de cada carpeta y archivo.
+
+---
+
+## Estructura General
+
+```
+proyecto/
+├── foro/               # Proyecto Django (configuración principal)
+├── foro_juegos/       # App personalizada del foro
+├── core/               # App base (vacía, sin uso)
+├── venv/               # Entorno virtual de Python
+├── manage.py           # Comando CLI de Django
+├── db.sqlite3          # Base de datos (desarrollo)
+└── requirements.txt    # Dependencias del proyecto
+```
+
+---
+
+# 1. CARPETA: `foro/`
+
+## ¿Qué es?
+Es la **carpeta de configuración principal** del proyecto Django. Se crea automáticamente con el comando `django-admin startproject foro`. Contiene todos los archivos necesarios para que Django funcione.
+
+## Archivos
+
+| Archivo | Descripción |
+|---------|-------------|
+| `__init__.py` | Marca la carpeta como un paquete Python. |
+| `settings.py` | **Configuración global** del proyecto: base de datos, apps instaladas, seguridad, middlewares, etc. |
+| `urls.py` | **Rutas principales** del proyecto. Define qué URL carga cada vista. |
+| `wsgi.py` | Permite deploy en servidores WSGI (Gunicorn, etc.). |
+| `asgi.py` | Para aplicaciones asíncronas en Django. |
+
+### Detalles Importantes:
+
+- **`settings.py`**: Aquí seconfigura:
+  - `INSTALLED_APPS`: Apps activas (`foro_juegos`, `core`, etc.)
+  - `DATABASES`: Conexión a PostgreSQL
+  - `AUTH_USER_MODEL = 'foro_juegos.User'`: Usa el modelo de usuario personalizado
+
+- **`urls.py`**: Incluye las rutas del admin y de la API:
+  ```python
+  path('admin/', admin.site.urls),
+  path('api/', include('foro_juegos.urls')),
+  ```
+
+---
+
+# 2. CARPETA: `foro_juegos/`
+
+## ¿Qué es?
+Es la **aplicación personalizada** que creamos para el foro de juegos. Contiene toda la lógica de negocio: modelos, vistas, serializadores, etc.
+
+## Subcarpetas y Archivos
+
+| Carpeta/Archivo | Descripción |
+|------------------|-------------|
+| `__init__.py` | Marca la carpeta como un paquete Python. |
+| `apps.py` | Configuración de la app (nombre, etc.). |
+| `models/` | **Modelos de base de datos** (tablas). |
+| `views.py` | **Vistas de la API REST** (endpoints). |
+| `serializers.py` | **Conversión** entre objetos Django y JSON. |
+| `admin.py` | **Registro** en el panel de administración (`/admin/`). |
+| `urls.py` | **Rutas** de la API (`/api/users/`, etc.). |
+| `migrations/` | **Migraciones** de la base de datos. |
+
+### Detalles de cada archivo:
+
+#### `models/`
+Contiene las definiciones de las tablas de la base de datos:
+
+| Archivo | Modelo | Descripción |
+|---------|--------|-------------|
+| `user.py` | `User` | Usuario personalizado (hereda de AbstractUser). |
+| `category.py` | `Category` | Categorías de juegos/temáticas. |
+| `post.py` | `Post` | Publicaciones del foro. |
+| `comment.py` | `Comment` | Comentarios en publicaciones. |
+| `image.py` | `Image` | Imágenes asociadas a posts. |
+| `report.py` | `Report` | Denuncias de contenido. |
+
+#### `views.py`
+**Vistas de la REST API** usando `ModelViewSet`:
+
+- `UserViewSet` → CRUD de usuarios
+- `CategoryViewSet` → CRUD de categorías
+- `PostViewSet` → CRUD de publicaciones
+- `CommentViewSet` → CRUD de comentarios
+- `ImageViewSet` → CRUD de imágenes
+- `ReportViewSet` → CRUD de reportes
+
+#### `serializers.py`
+Convierte objetos Django a JSON y viceversa:
+
+- `UserSerializer` → Serializa usuarios
+- `UserCreateSerializer` → Crea usuarios con password encriptada
+- `CategorySerializer` → Serializa categorías
+- `PostSerializer` → Serializa posts
+- `CommentSerializer` → Serializa comentarios
+- `ImageSerializer` → Serializa imágenes
+- `ReportSerializer` → Serializa reportes
+
+#### `urls.py`
+Define los endpoints de la API:
+
+| URL | ViewSet |
+|-----|---------|
+| `/api/users/` | `UserViewSet` |
+| `/api/categories/` | `CategoryViewSet` |
+| `/api/posts/` | `PostViewSet` |
+| `/api/comments/` | `CommentViewSet` |
+| `/api/images/` | `ImageViewSet` |
+| `/api/reports/` | `ReportViewSet` |
+
+#### `admin.py`
+Registra los modelos en el panel de administración (`/admin/`), permitiendo:
+
+- Ver y editar usuarios, posts, comentarios, etc.
+- Filtrar por campos
+- Buscar por nombre/contenido
+
+---
+
+# 3. CARPETA: `core/`
+
+## ¿Qué es?
+Es una **app vacía** которая quedó sin uso. Originalmente contenía modelos de tienda (Productos, Pedidos, etc.), pero se eliminaron.
+
+## Estado Actual
+Solo tiene el archivo `models.py` vacío. **No hace falta**.
+
+---
+
+# 4. Resumen de Flujo de una Solicitud
+
+Ejemplo: Request a `GET /api/posts/`
+
+```
+1. Petición → http://localhost:8000/api/posts/
+2. foro/urls.py → incluye foro_juegos.urls
+3. foro_juegos/urls.py → router de DRF
+4. foro_juegos/views.py → PostViewSet
+5. foro_juegos/serializers.py → PostSerializer (convierte a JSON)
+6. django models/post.py → Consulta a la DB
+7. Respuesta JSON al cliente
+```
+
+---
+
+# 5. Comandos Útiles
+
+| Comando | Descripción |
+|---------|-------------|
+| `python manage.py runserver` | Iniciar el servidor |
+| `python manage.py makemigrations` | Crear migraciones |
+| `python manage.py migrate` | Aplicar migraciones |
+| `python manage.py createsuperuser` | Crear superusuario |
+| `python manage.py check` | Verificar errores |
+
+---
+
+# 6. Endpoints de la API
+
+| Método | URL | Acción |
+|--------|-----|--------|
+| GET/POST | `/api/users/` | Listar/Crear usuarios |
+| GET/PUT/DELETE | `/api/users/{id}/` | DetalleUsuario |
+| GET/POST | `/api/categories/` | Listar/Crear categorías |
+| GET/PUT/DELETE | `/api/categories/{id}/` | DetalleCategoría |
+| GET/POST | `/api/posts/` | Listar/Crear publicaciones |
+| GET/PUT/DELETE | `/api/posts/{id}/` | DetallePublicación |
+| GET/POST | `/api/comments/` | Listar/Crear comentarios |
+| GET/PUT/DELETE | `/api/comments/{id}/` | DetalleComentario |
+| GET/POST | `/api/images/` | Listar/Crear imágenes |
+| GET/POST | `/api/reports/` | Listar/Crear reportes |
+
+---
+
+# 7. Tecnologías Usadas
+
+- **Django 6.0** - Framework web
+- **Django REST Framework** - API REST
+- **PostgreSQL** - Base de datos de producción
+- **psycopg2** - Driver de PostgreSQL
+- **CORS Headers** - Permisos de cross-origin
+
+---
+
+Documento generado para el Proyecto Foro de Juegos - Programación 1
