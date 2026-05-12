@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=2*48&ic5)&tp6k31gymf9d8uw5-5t!p(o1#y6worhnz1o&ac*'
+SECRET_KEY = 'django-insecure-=2*48&ic5)&tp6k31gymf9d8uw5-5t!p(o1#y6worhnz1o&ac*'q
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -40,10 +40,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'drf_spectacular',
-    'foro_juegos',
     'core',
 ]
 
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -81,25 +81,14 @@ WSGI_APPLICATION = 'foro.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'programaciondb',
-        'USER': 'postgres',
-        'PASSWORD': '123456789',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
 
-# Custom user model
-AUTH_USER_MODEL = 'foro_juegos.User'
-
-REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-}
-
 # Password validation
-# https://docs.djangoproject.com/en/6.0/topics/auth/password-validation/
+# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -121,8 +110,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
 CORS_ALLOWED_ORIGINS = [
+
     'http://localhost:3000',
+
 ]
+
 
 LANGUAGE_CODE = 'en-us'
 
