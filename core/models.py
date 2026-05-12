@@ -1,3 +1,1 @@
-from django.db import models
-
-# Create your models here.
+# Dummy models folder to keep migrations minimal
