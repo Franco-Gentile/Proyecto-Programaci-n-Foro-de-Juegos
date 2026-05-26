@@ -11,6 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    email = serializers.EmailField(required=True)
 
     class Meta:
         model = User
@@ -108,3 +109,10 @@ class ReportSerializer(serializers.ModelSerializer):
         model = Report
         fields = ['id', 'reported_by', 'post', 'post_id', 'comment', 'comment_id', 'reason', 'status', 'created_at']
         read_only_fields = ['created_at']
+
+    def validate(self, attrs):
+        post = attrs.get('post', self.instance.post if self.instance else None)
+        comment = attrs.get('comment', self.instance.comment if self.instance else None)
+        if not post and not comment:
+            raise serializers.ValidationError('A report must reference a post or a comment.')
+        return attrs
