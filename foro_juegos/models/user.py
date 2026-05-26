@@ -8,8 +8,12 @@ USER_ROLE_CHOICES = [
 ]
 
 class User(AbstractUser):
+    email = models.EmailField()
     role = models.CharField(max_length=10, choices=USER_ROLE_CHOICES, default='USER')
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'forum_user'
+
+    def __str__(self):
+        return self.username

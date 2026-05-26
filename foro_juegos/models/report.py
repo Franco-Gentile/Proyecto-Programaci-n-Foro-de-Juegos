@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from .user import User
 from .post import Post
@@ -15,6 +16,10 @@ class Report(models.Model):
     reason = models.TextField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if not self.post and not self.comment:
+            raise ValidationError('A report must reference a post or a comment.')
 
     def __str__(self):
         target = self.post if self.post else self.comment
