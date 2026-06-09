@@ -1,15 +1,15 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-USER_ROLE_CHOICES = [
-    ('USER', 'User'),
-    ('MODERATOR', 'Moderator'),
-    ('ADMIN', 'Admin'),
-]
 
 class User(AbstractUser):
+    class Role(models.TextChoices):
+        ADMIN = 'ADMIN', 'Admin'
+        MODERATOR = 'MODERATOR', 'Moderator'
+        USER = 'USER', 'User'
+
     email = models.EmailField()
-    role = models.CharField(max_length=10, choices=USER_ROLE_CHOICES, default='USER')
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     is_deleted = models.BooleanField(default=False)
 
     class Meta:

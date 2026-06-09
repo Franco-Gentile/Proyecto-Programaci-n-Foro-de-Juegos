@@ -1,0 +1,122 @@
+{
+  "info": {
+    "name": "TP3 - Foro de Juegos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Registro (201)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"hikken\",\n  \"email\": \"hikken@gmail.com\",\n  \"password\": \"1234\"\n}"
+        },
+        "url": "http://localhost:8000/api/users/"
+      }
+    },
+    {
+      "name": "2. Login (200)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"hikken\",\n  \"password\": \"1234\"\n}"
+        },
+        "url": "http://localhost:8000/api/auth/login/"
+      }
+    },
+    {
+      "name": "3. Perfil con token (200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "http://localhost:8000/api/users/me/"
+      }
+    },
+    {
+      "name": "4. Sin token (401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "http://localhost:8000/api/users/me/"
+      }
+    },
+    {
+      "name": "5. USER crea categoria (403)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Acción\",\n  \"description\": \"Juegos de acción\"\n}"
+        },
+        "url": "http://localhost:8000/api/categories/"
+      }
+    },
+    {
+      "name": "6. ADMIN crea categoria (201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Deportes\",\n  \"description\": \"Juegos deportivos\"\n}"
+        },
+        "url": "http://localhost:8000/api/categories/"
+      }
+    },
+    {
+      "name": "7. USER crea post (201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"GTA V\",\n  \"content\": \"Mejor juego\",\n  \"category_id\": 1\n}"
+        },
+        "url": "http://localhost:8000/api/posts/"
+      }
+    },
+    {
+      "name": "8. MODERATOR borra post (204)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{mod_token}}",
+            "type": "text"
+          }
+        ],
+        "url": "http://localhost:8000/api/posts/1/"
+      }
+    }
+  ]
+}

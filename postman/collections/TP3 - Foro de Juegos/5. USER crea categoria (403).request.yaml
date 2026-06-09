@@ -1,0 +1,13 @@
+$kind: http-request
+url: http://localhost:8000/api/categories/
+method: POST
+headers:
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+      "name": "Acción",
+      "description": "Juegos de acción"
+    }
+order: 5000
