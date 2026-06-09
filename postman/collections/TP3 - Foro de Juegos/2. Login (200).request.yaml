@@ -1,0 +1,11 @@
+$kind: http-request
+url: http://localhost:8000/api/auth/login/
+method: POST
+body:
+  type: text
+  content: |-
+    {
+      "username": "hikken",
+      "password": "1234"
+    }
+order: 2000

@@ -1,0 +1,13 @@
+# Use this workspace to collaborate
+workspace:
+  id: 75cbf183-b664-448b-8265-b7e4aab06727
+
+cloudResources:
+  collections:
+    ..\postman\collections\TP3 - Foro de Juegos: f02433bb-c980-4508-b55a-d5110114be60
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

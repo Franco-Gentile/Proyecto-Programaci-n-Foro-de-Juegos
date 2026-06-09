@@ -1,0 +1,14 @@
+$kind: http-request
+url: http://localhost:8000/api/posts/
+method: POST
+headers:
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+      "title": "GTA V",
+      "content": "Mejor juego",
+      "category_id": 1
+    }
+order: 7000

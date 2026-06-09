@@ -1,0 +1,6 @@
+$kind: http-request
+url: http://localhost:8000/api/posts/1/
+method: DELETE
+headers:
+  Authorization: Bearer {{mod_token}}
+order: 8000
