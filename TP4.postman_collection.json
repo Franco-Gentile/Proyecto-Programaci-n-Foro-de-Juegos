@@ -15,10 +15,23 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\"\n}"
+              "raw": "{\n  \"username\": \"{{admin_username}}\",\n  \"password\": \"{{admin_password}}\"\n}"
             },
-            "url": "http://localhost:8000/api/auth/login/"
-          }
+            "url": "{{base_url}}/api/auth/login/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Login Mod",
@@ -27,10 +40,23 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"mod\",\n  \"password\": \"mod1234\"\n}"
+              "raw": "{\n  \"username\": \"{{mod_username}}\",\n  \"password\": \"{{mod_password}}\"\n}"
             },
-            "url": "http://localhost:8000/api/auth/login/"
-          }
+            "url": "{{base_url}}/api/auth/login/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Login User",
@@ -39,10 +65,23 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"testuser_tp4\",\n  \"password\": \"pass1234\"\n}"
+              "raw": "{\n  \"username\": \"{{user_username}}\",\n  \"password\": \"{{user_password}}\"\n}"
             },
-            "url": "http://localhost:8000/api/auth/login/"
-          }
+            "url": "{{base_url}}/api/auth/login/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Registro",
@@ -51,10 +90,23 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"nuevouser\",\n  \"email\": \"nuevo@mail.com\",\n  \"password\": \"pass1234\"\n}"
+              "raw": "{\n  \"username\": \"nuevouser\",\n  \"email\": \"nuevo@mail.com\",\n  \"password\": \"{{user_password}}\"\n}"
             },
-            "url": "http://localhost:8000/api/users/"
-          }
+            "url": "{{base_url}}/api/users/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -76,8 +128,21 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"NuevaCat\",\n  \"description\": \"Test\"\n}"
             },
-            "url": "http://localhost:8000/api/categories/"
-          }
+            "url": "{{base_url}}/api/categories/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "MOD crea categoria",
@@ -94,8 +159,21 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"OtraCat\",\n  \"description\": \"Test\"\n}"
             },
-            "url": "http://localhost:8000/api/categories/"
-          }
+            "url": "{{base_url}}/api/categories/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "USER crea categoria (403)",
@@ -112,8 +190,21 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"FailCat\",\n  \"description\": \"Test\"\n}"
             },
-            "url": "http://localhost:8000/api/categories/"
-          }
+            "url": "{{base_url}}/api/categories/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "ADMIN edita categoria",
@@ -130,8 +221,21 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"Editada\",\n  \"description\": \"Edit\"\n}"
             },
-            "url": "http://localhost:8000/api/categories/1/"
-          }
+            "url": "{{base_url}}/api/categories/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "USER edita categoria (403)",
@@ -148,8 +252,21 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"Hack\"\n}"
             },
-            "url": "http://localhost:8000/api/categories/1/"
-          }
+            "url": "{{base_url}}/api/categories/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "ADMIN borra categoria",
@@ -162,8 +279,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/categories/1/"
-          }
+            "url": "{{base_url}}/api/categories/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "USER borra categoria (403)",
@@ -176,16 +306,42 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/categories/1/"
-          }
+            "url": "{{base_url}}/api/categories/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Listar categorias",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "http://localhost:8000/api/categories/"
-          }
+            "url": "{{base_url}}/api/categories/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -207,8 +363,21 @@
               "mode": "raw",
               "raw": "{\n  \"title\": \"Mi post\",\n  \"content\": \"Contenido\",\n  \"category_id\": 1\n}"
             },
-            "url": "http://localhost:8000/api/posts/"
-          }
+            "url": "{{base_url}}/api/posts/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "USER dueño edita post",
@@ -225,8 +394,21 @@
               "mode": "raw",
               "raw": "{\n  \"title\": \"Editado\"\n}"
             },
-            "url": "http://localhost:8000/api/posts/1/"
-          }
+            "url": "{{base_url}}/api/posts/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "USER otro edita post (403)",
@@ -243,8 +425,21 @@
               "mode": "raw",
               "raw": "{\n  \"title\": \"Hack\"\n}"
             },
-            "url": "http://localhost:8000/api/posts/1/"
-          }
+            "url": "{{base_url}}/api/posts/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "USER dueño borra post",
@@ -257,8 +452,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/posts/1/"
-          }
+            "url": "{{base_url}}/api/posts/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "USER otro borra post (403)",
@@ -271,8 +479,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/posts/1/"
-          }
+            "url": "{{base_url}}/api/posts/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "ADMIN borra post",
@@ -285,8 +506,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/posts/1/"
-          }
+            "url": "{{base_url}}/api/posts/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "MOD borra post",
@@ -299,8 +533,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/posts/1/"
-          }
+            "url": "{{base_url}}/api/posts/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -322,8 +569,21 @@
               "mode": "raw",
               "raw": "{\n  \"content\": \"Comentario\",\n  \"post_id\": 1\n}"
             },
-            "url": "http://localhost:8000/api/comments/"
-          }
+            "url": "{{base_url}}/api/comments/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Borrar comentario propio",
@@ -336,8 +596,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/comments/1/"
-          }
+            "url": "{{base_url}}/api/comments/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Borrar comentario ajeno (403)",
@@ -350,8 +623,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/comments/1/"
-          }
+            "url": "{{base_url}}/api/comments/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -373,8 +659,21 @@
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Spam\",\n  \"post_id\": 1\n}"
             },
-            "url": "http://localhost:8000/api/reports/"
-          }
+            "url": "{{base_url}}/api/reports/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "USER lista reportes (403)",
@@ -387,8 +686,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/reports/"
-          }
+            "url": "{{base_url}}/api/reports/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "ADMIN lista reportes",
@@ -401,8 +713,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/reports/"
-          }
+            "url": "{{base_url}}/api/reports/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -416,10 +741,23 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"testdup\",\n  \"email\": \"testuser_tp4@mail.com\",\n  \"password\": \"pass\"\n}"
+              "raw": "{\n  \"username\": \"testdup\",\n  \"email\": \"{{user_email}}\",\n  \"password\": \"pass\"\n}"
             },
-            "url": "http://localhost:8000/api/users/"
-          }
+            "url": "{{base_url}}/api/users/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Username duplicado (400)",
@@ -428,10 +766,23 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"testuser_tp4\",\n  \"email\": \"otro@mail.com\",\n  \"password\": \"pass\"\n}"
+              "raw": "{\n  \"username\": \"{{user_username}}\",\n  \"email\": \"otro@mail.com\",\n  \"password\": \"pass\"\n}"
             },
-            "url": "http://localhost:8000/api/users/"
-          }
+            "url": "{{base_url}}/api/users/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Sin email (400)",
@@ -442,8 +793,21 @@
               "mode": "raw",
               "raw": "{\n  \"username\": \"usernomail\",\n  \"password\": \"pass\"\n}"
             },
-            "url": "http://localhost:8000/api/users/"
-          }
+            "url": "{{base_url}}/api/users/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Category_id invalido (400)",
@@ -460,8 +824,21 @@
               "mode": "raw",
               "raw": "{\n  \"title\": \"X\",\n  \"content\": \"Y\",\n  \"category_id\": 99999\n}"
             },
-            "url": "http://localhost:8000/api/posts/"
-          }
+            "url": "{{base_url}}/api/posts/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Post_id invalido (400)",
@@ -478,8 +855,21 @@
               "mode": "raw",
               "raw": "{\n  \"content\": \"X\",\n  \"post_id\": 99999\n}"
             },
-            "url": "http://localhost:8000/api/comments/"
-          }
+            "url": "{{base_url}}/api/comments/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Reporte sin referencia (400)",
@@ -496,8 +886,21 @@
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Sin ref\"\n}"
             },
-            "url": "http://localhost:8000/api/reports/"
-          }
+            "url": "{{base_url}}/api/reports/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Login incorrecto (401)",
@@ -508,16 +911,42 @@
               "mode": "raw",
               "raw": "{\n  \"username\": \"noexiste\",\n  \"password\": \"mal\"\n}"
             },
-            "url": "http://localhost:8000/api/auth/login/"
-          }
+            "url": "{{base_url}}/api/auth/login/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Sin token (401)",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "http://localhost:8000/api/users/me/"
-          }
+            "url": "{{base_url}}/api/users/me/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -531,10 +960,23 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"flowuser\",\n  \"email\": \"flow@mail.com\",\n  \"password\": \"flowpass\"\n}"
+              "raw": "{\n  \"username\": \"flowuser\",\n  \"email\": \"flow@mail.com\",\n  \"password\": \"{{flow_password}}\"\n}"
             },
-            "url": "http://localhost:8000/api/users/"
-          }
+            "url": "{{base_url}}/api/users/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "2. Login",
@@ -543,10 +985,23 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"flowuser\",\n  \"password\": \"flowpass\"\n}"
+              "raw": "{\n  \"username\": \"flowuser\",\n  \"password\": \"{{flow_password}}\"\n}"
             },
-            "url": "http://localhost:8000/api/auth/login/"
-          }
+            "url": "{{base_url}}/api/auth/login/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "3. Perfil",
@@ -559,8 +1014,21 @@
                 "type": "text"
               }
             ],
-            "url": "http://localhost:8000/api/users/me/"
-          }
+            "url": "{{base_url}}/api/users/me/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "4. Crear post",
@@ -577,8 +1045,21 @@
               "mode": "raw",
               "raw": "{\n  \"title\": \"Flow\",\n  \"content\": \"Post\",\n  \"category_id\": 1\n}"
             },
-            "url": "http://localhost:8000/api/posts/"
-          }
+            "url": "{{base_url}}/api/posts/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "5. Crear comentario",
@@ -595,8 +1076,21 @@
               "mode": "raw",
               "raw": "{\n  \"content\": \"Flow comment\",\n  \"post_id\": 1\n}"
             },
-            "url": "http://localhost:8000/api/comments/"
-          }
+            "url": "{{base_url}}/api/comments/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "6. Editar post",
@@ -613,8 +1107,21 @@
               "mode": "raw",
               "raw": "{\n  \"title\": \"Flow Editado\"\n}"
             },
-            "url": "http://localhost:8000/api/posts/1/"
-          }
+            "url": "{{base_url}}/api/posts/1/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "7. Reportar post",
@@ -631,8 +1138,21 @@
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Report\",\n  \"post_id\": 1\n}"
             },
-            "url": "http://localhost:8000/api/reports/"
-          }
+            "url": "{{base_url}}/api/reports/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "8. Logout",
@@ -649,10 +1169,90 @@
               "mode": "raw",
               "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
             },
-            "url": "http://localhost:8000/api/auth/logout/"
-          }
+            "url": "{{base_url}}/api/auth/logout/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 205\", function () {",
+                  "    pm.response.to.have.status(205);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "admin_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mod_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mod_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "flow_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mod_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
     }
   ]
 }

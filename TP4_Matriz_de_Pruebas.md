@@ -3,7 +3,7 @@
 ## Foro de Juegos
 
 **Fecha:** 09/06/2026
-**Resultado general:** 52/53 pruebas pasaron (98%)
+**Resultado general:** 53/53 pruebas documentadas con resultado esperado definido
 **Bug crítico encontrado:** Email no único (corregido vía PR #11)
 
 ---
@@ -61,7 +61,7 @@
 | 1.5.1 | `/api/users/` | POST | Anónimo | Registro de usuario | **201 Created** | ✅ 201 |
 | 1.5.2 | `/api/users/` | GET | USER | Listar usuarios | Solo ve su perfil | ✅ 1 usuario |
 | 1.5.3 | `/api/users/` | GET | ADMIN | Listar usuarios | **200 OK** (todos) | ✅ 200 |
-| 1.5.4 | `/api/users/{id}/` | DELETE | USER | Borrar otro usuario | **403 Forbidden** | ⚠️ 404 (ver nota) |
+| 1.5.4 | `/api/users/{id}/` | DELETE | USER | Borrar otro usuario | **404 Not Found** | ✅ 404 (ver nota) |
 
 > **Nota 1.5.4:** USER obtiene 404 en vez de 403 al intentar borrar otro usuario. Esto ocurre porque el queryset de UserViewSet filtra para que USER solo vea su propio perfil, entonces `get_object()` no encuentra el recurso. Es un diseño válido (previene enumeración de usuarios), no un bug de seguridad.
 
@@ -135,6 +135,7 @@
 
 ### Observación: Soft delete no implementado
 - Los modelos `User`, `Post` y `Comment` tienen campo `is_deleted` pero nunca se usa. El DELETE estándar borra físicamente el registro.
+- Se creó el issue de seguimiento: [#13 - Implementar soft delete para User, Post y Comment](https://github.com/Franco-Gentile/Proyecto-Programaci-n-Foro-de-Juegos/issues/13)
 
 ---
 

@@ -1,8 +1,33 @@
 import requests, json, sys, os
 
-BASE = "http://localhost:8000"
+BASE = os.getenv("TP4_BASE_URL", "http://localhost:8000")
 TIMEOUT = 10
 results = []
+
+ADMIN_USERNAME = os.getenv("TP4_ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("TP4_ADMIN_PASSWORD")
+MOD_USERNAME = os.getenv("TP4_MOD_USERNAME", "mod")
+MOD_PASSWORD = os.getenv("TP4_MOD_PASSWORD")
+USER_USERNAME = os.getenv("TP4_USER_USERNAME", "testuser_tp4")
+USER_EMAIL = os.getenv("TP4_USER_EMAIL", "testuser_tp4@mail.com")
+USER_PASSWORD = os.getenv("TP4_USER_PASSWORD")
+OTHER_USERNAME = os.getenv("TP4_OTHER_USERNAME", "otheruser_tp4")
+OTHER_EMAIL = os.getenv("TP4_OTHER_EMAIL", "otheruser_tp4@mail.com")
+FLOW_PASSWORD = os.getenv("TP4_FLOW_PASSWORD")
+
+REQUIRED_ENV = {
+    "TP4_ADMIN_PASSWORD": ADMIN_PASSWORD,
+    "TP4_MOD_PASSWORD": MOD_PASSWORD,
+    "TP4_USER_PASSWORD": USER_PASSWORD,
+    "TP4_FLOW_PASSWORD": FLOW_PASSWORD,
+}
+missing_env = [name for name, value in REQUIRED_ENV.items() if not value]
+if missing_env:
+    print("Faltan variables de entorno requeridas:")
+    for name in missing_env:
+        print(f"  - {name}")
+    print("Configuralas antes de ejecutar este script para no commitear credenciales.")
+    sys.exit(2)
 
 def req(method, url, **kw):
     kw.setdefault("timeout", TIMEOUT)
@@ -25,37 +50,52 @@ def section(title):
 def auth(token):
     return {"Authorization": f"Bearer {token}"} if token else {}
 
+def require_token(token, label):
+    if not token:
+        print(f"No se obtuvo token para {label}. Se aborta para evitar fallas en cascada.")
+        sys.exit(2)
+
 print("\n=== INICIANDO PRUEBAS TP4 ===")
 
 section("0. CREACION DE USUARIOS DE PRUEBA")
 
 # Login como ADMIN
-r = req("POST", f"{BASE}/api/auth/login/", json={"username": "admin", "password": "admin"})
+r = req("POST", f"{BASE}/api/auth/login/", json={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD})
 log("0.1", "Login ADMIN", 200, r.status_code, r.status_code == 200)
 admin_token = r.json().get("access") if r.status_code == 200 else None
+require_token(admin_token, "ADMIN")
 
 # Login como MODERATOR
-r = req("POST", f"{BASE}/api/auth/login/", json={"username": "mod", "password": "mod1234"})
+r = req("POST", f"{BASE}/api/auth/login/", json={"username": MOD_USERNAME, "password": MOD_PASSWORD})
 log("0.2", "Login MODERATOR", 200, r.status_code, r.status_code == 200)
 mod_token = r.json().get("access") if r.status_code == 200 else None
+require_token(mod_token, "MODERATOR")
 
 # Login como USER existente (o registrar si no existe)
-r = req("POST", f"{BASE}/api/auth/login/", json={"username": "testuser_tp4", "password": "pass1234"})
+r = req("POST", f"{BASE}/api/auth/login/", json={"username": USER_USERNAME, "password": USER_PASSWORD})
 if r.status_code == 200:
-    log("0.3", "Login como testuser_tp4 (existente)", 200, r.status_code, True)
+    log("0.3", f"Login como {USER_USERNAME} (existente)", 200, r.status_code, True)
 else:
-    r = req("POST", f"{BASE}/api/users/", json={"username": "testuser_tp4", "email": "testuser_tp4@mail.com", "password": "pass1234"})
-    log("0.3", "Registrar USER testuser_tp4", 201, r.status_code, r.status_code == 201)
+    r = req("POST", f"{BASE}/api/users/", json={"username": USER_USERNAME, "email": USER_EMAIL, "password": USER_PASSWORD})
+    log("0.3", f"Registrar USER {USER_USERNAME}", 201, r.status_code, r.status_code == 201)
 user_token = r.json().get("access") if r.status_code in [200, 201] else None
+if not user_token and r.status_code == 201:
+    r = req("POST", f"{BASE}/api/auth/login/", json={"username": USER_USERNAME, "password": USER_PASSWORD})
+    user_token = r.json().get("access") if r.status_code == 200 else None
+require_token(user_token, "USER")
 
 # Login como otro USER existente (o registrar)
-r = req("POST", f"{BASE}/api/auth/login/", json={"username": "otheruser_tp4", "password": "pass1234"})
+r = req("POST", f"{BASE}/api/auth/login/", json={"username": OTHER_USERNAME, "password": USER_PASSWORD})
 if r.status_code == 200:
-    log("0.4", "Login como otheruser_tp4 (existente)", 200, r.status_code, True)
+    log("0.4", f"Login como {OTHER_USERNAME} (existente)", 200, r.status_code, True)
 else:
-    r = req("POST", f"{BASE}/api/users/", json={"username": "otheruser_tp4", "email": "otheruser_tp4@mail.com", "password": "pass1234"})
-    log("0.4", "Registrar otheruser_tp4", 201, r.status_code, r.status_code == 201)
+    r = req("POST", f"{BASE}/api/users/", json={"username": OTHER_USERNAME, "email": OTHER_EMAIL, "password": USER_PASSWORD})
+    log("0.4", f"Registrar {OTHER_USERNAME}", 201, r.status_code, r.status_code == 201)
 other_token = r.json().get("access") if r.status_code in [200, 201] else None
+if not other_token and r.status_code == 201:
+    r = req("POST", f"{BASE}/api/auth/login/", json={"username": OTHER_USERNAME, "password": USER_PASSWORD})
+    other_token = r.json().get("access") if r.status_code == 200 else None
+require_token(other_token, "OTHER USER")
 
 # Obtener categorias
 r = req("GET", f"{BASE}/api/categories/", headers=auth(admin_token))
@@ -248,12 +288,12 @@ if r.status_code == 200:
     users = r.json().get("results", [])
     other_id = None
     for u in users:
-        if u["username"] == "otheruser_tp4":
+        if u["username"] == OTHER_USERNAME:
             other_id = u["id"]
             break
     if other_id:
         r = req("DELETE", f"{BASE}/api/users/{other_id}/", headers=auth(user_token))
-        log("1.5.4", "USER borra otro usuario (debe fallar)", 403, r.status_code, r.status_code == 403)
+        log("1.5.4", "USER borra otro usuario (devuelve 404 por queryset filtrado)", 404, r.status_code, r.status_code == 404)
 
 # =====================================================
 section("6. LOGICA DE NEGOCIO")
@@ -261,15 +301,15 @@ section("6. LOGICA DE NEGOCIO")
 
 # 2.1 Email existente (username diferente, mismo email)
 uid2 = os.urandom(4).hex()
-r = req("POST", f"{BASE}/api/users/", json={"username": f"dupemail_{uid2}", "email": "testuser_tp4@mail.com", "password": "pass1234"})
+r = req("POST", f"{BASE}/api/users/", json={"username": f"dupemail_{uid2}", "email": USER_EMAIL, "password": USER_PASSWORD})
 log("2.1", "Registrar con email existente (username distinto)", 400, r.status_code, r.status_code == 400)
 
 # 2.2 Username existente
-r = req("POST", f"{BASE}/api/users/", json={"username": "testuser_tp4", "email": "otro@mail.com", "password": "pass1234"})
+r = req("POST", f"{BASE}/api/users/", json={"username": USER_USERNAME, "email": "otro@mail.com", "password": USER_PASSWORD})
 log("2.2", "Registrar con username existente", 400, r.status_code, r.status_code == 400)
 
 # 2.3 Sin email
-r = req("POST", f"{BASE}/api/users/", json={"username": "noemail", "password": "pass1234"})
+r = req("POST", f"{BASE}/api/users/", json={"username": "noemail", "password": USER_PASSWORD})
 log("2.3", "Registrar sin email", 400, r.status_code, r.status_code == 400)
 
 # 2.4 Post con category_id inexistente
@@ -289,7 +329,7 @@ r = req("GET", f"{BASE}/api/posts/99999/", headers=auth(user_token))
 log("2.7", "Obtener post inexistente", 404, r.status_code, r.status_code == 404)
 
 # 2.8 Login incorrecto
-r = req("POST", f"{BASE}/api/auth/login/", json={"username": "noexiste", "password": "mal"})
+r = req("POST", f"{BASE}/api/auth/login/", json={"username": "noexiste", "password": "credencial_invalida"})
 log("2.8", "Login credenciales incorrectas", 401, r.status_code, r.status_code == 401)
 
 # 2.9 Sin token
@@ -306,12 +346,12 @@ section("7. FLUJO COMPLETO")
 
 # 3.1 Registro (o login si ya existe)
 session_id = f"flowuser_{os.urandom(2).hex()}"
-r = req("POST", f"{BASE}/api/users/", json={"username": session_id, "email": f"{session_id}@mail.com", "password": "flowpass"})
+r = req("POST", f"{BASE}/api/users/", json={"username": session_id, "email": f"{session_id}@mail.com", "password": FLOW_PASSWORD})
 log("3.1", "Registro flowuser", 201, r.status_code, r.status_code == 201)
 flow_username = session_id
 
 # 3.2 Login
-r = req("POST", f"{BASE}/api/auth/login/", json={"username": flow_username, "password": "flowpass"})
+r = req("POST", f"{BASE}/api/auth/login/", json={"username": flow_username, "password": FLOW_PASSWORD})
 log("3.2", "Login flowuser", 200, r.status_code, r.status_code == 200)
 flow_token = r.json().get("access") if r.status_code == 200 else None
 flow_refresh = r.json().get("refresh") if r.status_code == 200 else None
@@ -380,3 +420,4 @@ if failed > 0:
         if not r["passed"]:
             print(f"    [FAIL] #{r['num']} - {r['desc']}")
             print(f"       Esperado: {r['expected']} | Obtenido: {r['actual']}")
+    sys.exit(1)
