@@ -17,6 +17,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'email', 'password']
 
+    def validate_email(self, value):
+        if User.objects.filter(email=value, is_deleted=False).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -115,4 +120,13 @@ class ReportSerializer(serializers.ModelSerializer):
         comment = attrs.get('comment', self.instance.comment if self.instance else None)
         if not post and not comment:
             raise serializers.ValidationError('A report must reference a post or a comment.')
+
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if post and Report.objects.filter(reported_by=user, post=post).exists():
+                raise serializers.ValidationError('You have already reported this post.')
+            if comment and Report.objects.filter(reported_by=user, comment=comment).exists():
+                raise serializers.ValidationError('You have already reported this comment.')
+
         return attrs

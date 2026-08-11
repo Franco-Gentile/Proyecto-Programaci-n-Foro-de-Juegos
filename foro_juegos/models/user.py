@@ -8,7 +8,7 @@ class User(AbstractUser):
         MODERATOR = 'MODERATOR', 'Moderator'
         USER = 'USER', 'User'
 
-    email = models.EmailField()
+    email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     is_deleted = models.BooleanField(default=False)
 

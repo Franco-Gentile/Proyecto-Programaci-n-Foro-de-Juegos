@@ -181,7 +181,7 @@ else:
     temp_pid = r.json().get("id") if r.status_code == 201 else None
     if temp_pid:
         r = req("DELETE", f"{BASE}/api/posts/{temp_pid}/", headers=auth(user_token))
-        log("1.2.4", "USER (dueno) borra post propio", 204, r.status_code, r.status_code == 204)
+        log("1.2.4", "USER (dueno) borra post propio (soft delete)", 200, r.status_code, r.status_code == 200)
 
     # USER (otro) borra post ajeno
     if post_id and other_token:
@@ -193,14 +193,14 @@ else:
     tmp = r.json().get("id") if r.status_code == 201 else None
     if tmp:
         r = req("DELETE", f"{BASE}/api/posts/{tmp}/", headers=auth(admin_token))
-        log("1.2.6", "ADMIN borra cualquier post", 204, r.status_code, r.status_code == 204)
+        log("1.2.6", "ADMIN borra cualquier post (soft delete)", 200, r.status_code, r.status_code == 200)
 
     # MODERATOR borra cualquier post
     r = req("POST", f"{BASE}/api/posts/", json={"title": "Post mod del", "content": "x", "category_id": valid_cat_id}, headers=auth(user_token))
     tmp = r.json().get("id") if r.status_code == 201 else None
     if tmp:
         r = req("DELETE", f"{BASE}/api/posts/{tmp}/", headers=auth(mod_token))
-        log("1.2.7", "MODERATOR borra cualquier post", 204, r.status_code, r.status_code == 204)
+        log("1.2.7", "MODERATOR borra cualquier post (soft delete)", 200, r.status_code, r.status_code == 200)
 
     # USER lista posts
     r = req("GET", f"{BASE}/api/posts/", headers=auth(user_token))
@@ -227,7 +227,7 @@ else:
     tmp_cid = r.json().get("id") if r.status_code == 201 else None
     if tmp_cid:
         r = req("DELETE", f"{BASE}/api/comments/{tmp_cid}/", headers=auth(user_token))
-        log("1.3.2", "USER (dueno) borra comment propio", 204, r.status_code, r.status_code == 204)
+        log("1.3.2", "USER (dueno) borra comment propio (soft delete)", 200, r.status_code, r.status_code == 200)
 
     # USER (otro) borra comment ajeno
     if comment_id and other_token:
@@ -237,7 +237,7 @@ else:
     # ADMIN borra cualquier comentario
     if comment_id:
         r = req("DELETE", f"{BASE}/api/comments/{comment_id}/", headers=auth(admin_token))
-        log("1.3.4", "ADMIN borra cualquier comentario", 204, r.status_code, r.status_code == 204)
+        log("1.3.4", "ADMIN borra cualquier comentario (soft delete)", 200, r.status_code, r.status_code == 200)
 
 # =====================================================
 section("4. CRUD POR ROLES - REPORTES")
