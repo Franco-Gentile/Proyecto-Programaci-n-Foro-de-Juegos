@@ -88,6 +88,17 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save()
+
+    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
+    def restore(self, request, pk=None):
+        obj = User.objects.get(pk=pk)
+        obj.is_deleted = False
+        obj.save()
+        return Response({'detail': 'User restored successfully.'})
+
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -115,6 +126,17 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save()
+
+    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
+    def restore(self, request, pk=None):
+        obj = Post.objects.get(pk=pk)
+        obj.is_deleted = False
+        obj.save()
+        return Response({'detail': 'Post restored successfully.'})
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
@@ -127,6 +149,17 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save()
+
+    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
+    def restore(self, request, pk=None):
+        obj = Comment.objects.get(pk=pk)
+        obj.is_deleted = False
+        obj.save()
+        return Response({'detail': 'Comment restored successfully.'})
 
 
 class ImageViewSet(viewsets.ModelViewSet):
