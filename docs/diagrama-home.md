@@ -1,5 +1,7 @@
 # Diagrama de Diseno Inicial - Foro de Juegos
 
+> **Nota:** Este diagrama es el diseño planificado. Los componentes se implementarán en PRs siguientes.
+
 ## Estructura del Proyecto (Dos Capas)
 
 ```
