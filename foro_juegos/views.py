@@ -75,8 +75,8 @@ class UserViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return User.objects.none()
         if user.is_staff or user.role == User.Role.ADMIN:
-            return User.objects.all()
-        return User.objects.filter(pk=user.pk)
+            return User.objects.filter(is_deleted=False)
+        return User.objects.filter(pk=user.pk, is_deleted=False)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -95,11 +95,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrModerator]
     pagination_class = StandardPagination
 
+    def get_queryset(self):
+        return Category.objects.all()
+
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     permission_classes = [IsAuthenticatedCreateOrModerate]
     pagination_class = StandardPagination
+
+    def get_queryset(self):
+        return Post.objects.filter(is_deleted=False)
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -115,6 +121,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticatedCreateOrModerate]
     pagination_class = StandardPagination
+
+    def get_queryset(self):
+        return Comment.objects.filter(is_deleted=False)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
