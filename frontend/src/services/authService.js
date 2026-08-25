@@ -39,9 +39,30 @@ function readJSON(key) {
   }
 }
 
+function generateId() {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).substring(2);
+}
+
 function getRegisteredUsers() {
   const stored = readJSON(USERS_KEY);
-  return Array.isArray(stored) ? stored : [];
+  let users = Array.isArray(stored) ? stored : [];
+  let needsSave = false;
+  
+  users = users.map(u => {
+    if (u.password && !u.passwordHash) {
+      needsSave = true;
+      const { password, ...rest } = u;
+      return { ...rest, passwordHash: hashPassword(password) };
+    }
+    return u;
+  });
+  
+  if (needsSave) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+  return users;
 }
 
 function getAllUsers() {
@@ -117,7 +138,7 @@ export function register(usernameInput, emailInput, passwordInput) {
   }
 
   const newUser = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     username,
     email,
     passwordHash: hashPassword(password),

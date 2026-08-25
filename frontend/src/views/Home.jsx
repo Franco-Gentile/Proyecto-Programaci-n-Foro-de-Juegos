@@ -3,6 +3,9 @@ import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import PostCard from '../components/PostCard';
 
+// TODO(conectar-backend): Estos posts están hardcodeados para la demo visual.
+// Cuando se conecte la API real, este array debe ser reemplazado por un estado
+// que se llene haciendo fetch a /api/posts.
 const posts = [
   {
     id: 1,

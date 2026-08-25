@@ -16,7 +16,7 @@ function Register() {
     e.preventDefault();
     setError('');
 
-    const result = register(username.trim(), email.trim(), password.trim());
+    const result = register(username.trim(), email.trim(), password);
     if (result.success) {
       navigate('/login');
     } else {

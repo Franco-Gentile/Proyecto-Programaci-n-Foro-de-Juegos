@@ -25,15 +25,8 @@ function AuthLayout({ title, subtitle, error, children, footer }) {
 
                   {error && (
                     <div
-                      className="alert alert-danger d-flex align-items-center gap-2 mb-4 py-2 px-3"
+                      className="alert alert-danger d-flex align-items-center gap-2 mb-4 py-2 px-3 alert-error-custom"
                       role="alert"
-                      style={{
-                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                        borderColor: '#ef4444',
-                        color: '#fca5a5',
-                        borderRadius: '10px',
-                        fontSize: '13px',
-                      }}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

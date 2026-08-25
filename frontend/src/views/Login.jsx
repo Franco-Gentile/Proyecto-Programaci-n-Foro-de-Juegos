@@ -15,7 +15,7 @@ function Login() {
     e.preventDefault();
     setError('');
 
-    const result = login(username.trim(), password.trim());
+    const result = login(username.trim(), password);
     if (result.success) {
       navigate('/');
     } else {
