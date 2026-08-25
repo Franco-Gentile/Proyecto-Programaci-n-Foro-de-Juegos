@@ -1,11 +1,22 @@
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
 function Navbar() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
+
   return (
     <nav className="navbar navbar-expand-lg navbar-custom sticky-top">
       <div className="container-fluid px-3 px-md-4">
-        <a className="navbar-brand d-flex align-items-center gap-2" href="/">
+        <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
           <span className="brand-icon">joystick</span>
           <span className="brand-title">Games</span>
-        </a>
+        </Link>
 
         <div className="d-none d-md-flex flex-grow-1 mx-4">
           <input
@@ -27,8 +38,21 @@ function Navbar() {
               <path d="M8 16a2 2 0 0 0 1.985-1.75H6.015A2 2 0 0 0 8 16zM8 1.915l-.623.053A7.937 7.937 0 0 1 4.695 1.5H3.5a.5.5 0 0 0-.5.5v1a6.002 6.002 0 0 0 3.432 5.43l.25.135A7.99 7.99 0 0 1 8 4.5a7.937 7.937 0 0 1 .623.053V1.915z"/>
             </svg>
           </button>
-          <a href="/login" className="btn btn-auth">Login</a>
-          <a href="/register" className="btn btn-auth">Register</a>
+          {user ? (
+            <>
+              <span className="text-light d-none d-md-inline">
+                Hola, {user.username}
+              </span>
+              <button className="btn btn-auth" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-auth">Login</Link>
+              <Link to="/register" className="btn btn-auth">Register</Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
