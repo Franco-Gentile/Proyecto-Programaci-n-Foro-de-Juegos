@@ -11,7 +11,7 @@ const posts = [
     timeAgo: 'Hace 2 hs',
     content: 'Por fin sale el GTA VI 😭',
     tag: 'GTA VI',
-    imageUrl: 'https://placehold.co/800x420/1a1a1a/ffffff?text=ABSOLUTE+CINEMA',
+    imageUrl: '/absolute-cinema.jpg',
   },
   {
     id: 2,
