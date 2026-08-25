@@ -9,8 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "format": "prettier --write .",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",

@@ -1,68 +1,89 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import AuthLayout from '../components/AuthLayout';
-import FormField from '../components/FormField';
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault()
+    setError('')
 
-    const result = login(username.trim(), password.trim());
-    if (result.success) {
-      navigate('/');
-    } else {
-      setError(result.error);
+    if (!username.trim() || !password.trim()) {
+      setError('Todos los campos son obligatorios')
+      return
     }
-  };
+
+    const result = login(username, password)
+    if (result.success) {
+      navigate('/')
+    } else {
+      setError(result.error)
+    }
+  }
 
   return (
-    <AuthLayout
-      title="Iniciar Sesión"
-      subtitle="Ingresá tus credenciales para acceder a la comunidad"
-      error={error}
-      footer={
-        <>
-          <span>¿No tenés cuenta? </span>
-          <Link to="/register">Registrate acá</Link>
-        </>
-      }
-    >
-      <form onSubmit={handleSubmit} noValidate>
-        <FormField
-          id="username"
-          label="Usuario"
-          value={username}
-          onChange={setUsername}
-          placeholder="Ej: gamer_pro"
-          autoComplete="username"
-          required
-        />
+    <div className="container mt-5">
+      <div className="row justify-content-center">
+        <div className="col-md-6 col-lg-4">
+          <div className="card shadow">
+            <div className="card-body p-4">
+              <h2 className="card-title text-center mb-4">Iniciar Sesión</h2>
 
-        <FormField
-          id="password"
-          label="Contraseña"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          placeholder="Tu contraseña secreta"
-          autoComplete="current-password"
-          required
-        />
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              )}
 
-        <button type="submit" className="btn btn-auth-submit w-100 mt-2">
-          Entrar al Foro
-        </button>
-      </form>
-    </AuthLayout>
-  );
+              <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label htmlFor="username" className="form-label">
+                    Usuario
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Tu usuario"
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="password" className="form-label">
+                    Contraseña
+                  </label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    id="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tu contraseña"
+                  />
+                </div>
+
+                <button type="submit" className="btn btn-primary w-100">
+                  Entrar
+                </button>
+              </form>
+
+              <div className="text-center mt-3">
+                <span className="text-muted">¿No tenés cuenta? </span>
+                <Link to="/register">Registrate</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-export default Login;
+export default Login

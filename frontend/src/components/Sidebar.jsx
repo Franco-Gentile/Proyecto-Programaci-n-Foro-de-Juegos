@@ -1,33 +1,30 @@
 const juegos = [
-  { nombre: 'Maikra', icono: '⛏️' },
-  { nombre: 'CSGO', icono: '🔫' },
-  { nombre: 'Fallout 4', icono: '👍' },
-  { nombre: 'Sekiro', icono: '🥷' },
-];
+  { nombre: 'Mai kra', icono: 'knife' },
+  { nombre: 'CSGO', icono: 'pistol' },
+  { nombre: 'Fallout 4', icono: 'thumbsup' },
+  { nombre: 'Sekiro', icono: 'shuriken' },
+]
 
 function Sidebar() {
   return (
-    <aside className="sidebar-custom-card" aria-label="Sección Mis Juegos">
-      <h2 className="sidebar-custom-title">Mis juegos</h2>
-      <ul className="sidebar-games-list">
-        {juegos.map((juego) => (
-          <li key={juego.nombre} className="sidebar-game-item">
-            <span className="sidebar-game-label">
-              <span style={{ color: '#1a1a1a', marginRight: '4px' }}>*</span>
-              {juego.nombre}
-            </span>
-            <span
-              className="sidebar-game-icon-circle"
-              role="img"
-              aria-label={juego.nombre}
-            >
-              {juego.icono}
+    <div className="sidebar-custom">
+      <h5 className="sidebar-title">Mis juegos</h5>
+      <ul className="list-unstyled sidebar-list">
+        {juegos.map((juego, index) => (
+          <li key={index} className="sidebar-item">
+            <span className="sidebar-item-icon">*</span>
+            <span className="sidebar-item-name">{juego.nombre}</span>
+            <span className="sidebar-item-emoji">
+              {juego.icono === 'knife' && ''}
+              {juego.icono === 'pistol' && ''}
+              {juego.icono === 'thumbsup' && ''}
+              {juego.icono === 'shuriken' && ''}
             </span>
           </li>
         ))}
       </ul>
-    </aside>
-  );
+    </div>
+  )
 }
 
-export default Sidebar;
+export default Sidebar
