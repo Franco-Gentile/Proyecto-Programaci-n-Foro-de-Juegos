@@ -1,74 +1,57 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  login as authServiceLogin,
+  register as authServiceRegister,
+  logout as authServiceLogout,
+  getSession,
+  SESSION_KEY,
+} from '../services/authService';
 
-const AuthContext = createContext(null)
-
-const INITIAL_USERS = [
-  { id: 1, username: 'admin', email: 'admin@test.com', password: 'admin123' },
-  { id: 2, username: 'user', email: 'user@test.com', password: 'user123' },
-]
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('user')
-    return stored ? JSON.parse(stored) : null
-  })
+  const [user, setUser] = useState(() => getSession());
 
-  const [users, setUsers] = useState(() => {
-    const stored = localStorage.getItem('registeredUsers')
-    const registered = stored ? JSON.parse(stored) : []
-    return [...INITIAL_USERS, ...registered]
-  })
-
+  // Mantiene la sesión sincronizada entre pestañas: si otra pestaña hace
+  // login/logout (o borra el storage), esta se actualiza en consecuencia.
   useEffect(() => {
-    localStorage.setItem('user', JSON.stringify(user))
-  }, [user])
+    const handleStorage = (event) => {
+      if (event.key === SESSION_KEY || event.key === null) {
+        setUser(getSession());
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const login = (username, password) => {
-    const found = users.find(
-      (u) => u.username === username && u.password === password,
-    )
-    if (found) {
-      const { password: _, ...userData } = found
-      setUser(userData)
-      return { success: true }
+    const result = authServiceLogin(username, password);
+    if (result.success) {
+      setUser(result.user);
     }
-    return { success: false, error: 'Credenciales incorrectas' }
-  }
+    return result;
+  };
 
   const register = (username, email, password) => {
-    if (users.find((u) => u.username === username)) {
-      return { success: false, error: 'El usuario ya existe' }
-    }
-    if (users.find((u) => u.email === email)) {
-      return { success: false, error: 'El email ya está registrado' }
-    }
-    const newUser = { id: users.length + 1, username, email, password }
-    const updatedUsers = [...users, newUser]
-    setUsers(updatedUsers)
-
-    const registered = updatedUsers.filter(
-      (u) => !INITIAL_USERS.find((init) => init.id === u.id),
-    )
-    localStorage.setItem('registeredUsers', JSON.stringify(registered))
-
-    return { success: true }
-  }
+    return authServiceRegister(username, email, password);
+  };
 
   const logout = () => {
-    setUser(null)
-  }
+    authServiceLogout();
+    setUser(null);
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, register }}>
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth debe usarse dentro de un AuthProvider')
+    throw new Error('useAuth debe usarse dentro de un AuthProvider');
   }
-  return context
+  return context;
 }
