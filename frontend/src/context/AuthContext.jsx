@@ -24,20 +24,20 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const login = (username, password) => {
-    const result = authServiceLogin(username, password);
+  const login = async (username, password) => {
+    const result = await authServiceLogin(username, password);
     if (result.success) {
       setUser(result.user);
     }
     return result;
   };
 
-  const register = (username, email, password) => {
-    return authServiceRegister(username, email, password);
+  const register = async (username, email, password) => {
+    return await authServiceRegister(username, email, password);
   };
 
-  const logout = () => {
-    authServiceLogout();
+  const logout = async () => {
+    await authServiceLogout();
     setUser(null);
   };
 

@@ -12,11 +12,11 @@ function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    const result = register(username.trim(), email.trim(), password.trim());
+    const result = await register(username.trim(), email.trim(), password.trim());
     if (result.success) {
       navigate('/login');
     } else {
