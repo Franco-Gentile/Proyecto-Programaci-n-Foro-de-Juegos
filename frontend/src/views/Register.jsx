@@ -18,7 +18,7 @@ function Register() {
 
     const result = await register(username.trim(), email.trim(), password.trim());
     if (result.success) {
-      navigate('/login');
+      navigate('/login', { state: { message: 'Cuenta creada exitosamente. Por favor, iniciá sesión.' } });
     } else {
       setError(result.error);
     }

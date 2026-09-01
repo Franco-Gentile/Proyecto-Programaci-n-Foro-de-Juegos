@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import {
   login as authServiceLogin,
   register as authServiceRegister,
@@ -24,25 +24,27 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const login = async (username, password) => {
+  const login = useCallback(async (username, password) => {
     const result = await authServiceLogin(username, password);
     if (result.success) {
       setUser(result.user);
     }
     return result;
-  };
+  }, []);
 
-  const register = async (username, email, password) => {
+  const register = useCallback(async (username, email, password) => {
     return await authServiceRegister(username, email, password);
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await authServiceLogout();
     setUser(null);
-  };
+  }, []);
+
+  const value = useMemo(() => ({ user, login, logout, register }), [user, login, logout, register]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

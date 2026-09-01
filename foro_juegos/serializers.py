@@ -59,7 +59,7 @@ class PostListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'user', 'category', 'created_at', 'is_deleted']
+        fields = ['id', 'title', 'content', 'user', 'category', 'created_at', 'is_deleted']
 
 
 class CommentSerializer(serializers.ModelSerializer):

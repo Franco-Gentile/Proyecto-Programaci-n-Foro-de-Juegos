@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import FormField from '../components/FormField';
@@ -10,6 +10,8 @@ function Login() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = location.state?.message;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,6 +37,11 @@ function Login() {
         </>
       }
     >
+      {successMessage && !error && (
+        <div className="alert alert-success" role="alert">
+          {successMessage}
+        </div>
+      )}
       <form onSubmit={handleSubmit} noValidate>
         <FormField
           id="username"

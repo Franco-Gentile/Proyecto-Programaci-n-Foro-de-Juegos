@@ -5,9 +5,25 @@ import Sidebar from '../components/Sidebar';
 import PostCard from '../components/PostCard';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { getAuthToken } from '../services/authService';
+import { fetchWithAuth, API_URL } from '../services/authService';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+function getTimeAgo(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+  
+  if (seconds < 60) return `Hace un momento`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `Hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Hace ${hours} hs`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `Hace ${days} d`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `Hace ${months} meses`;
+  const years = Math.floor(days / 365);
+  return `Hace ${years} años`;
+}
 
 function Home() {
   const [posts, setPosts] = useState([]);
@@ -19,23 +35,11 @@ function Home() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const token = getAuthToken();
-        if (!token) {
-          setError('No hay sesión activa. Por favor, iniciá sesión.');
-          logout();
-          navigate('/login');
-          return;
-        }
-
-        const response = await fetch(`${API_URL}/posts/`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const response = await fetchWithAuth(`${API_URL}/posts/`);
 
         if (response.status === 401) {
           setError('Tu sesión expiró. Volvé a iniciar sesión.');
-          logout();
+          // fetchWithAuth ya borró el local storage, solo debemos notificar
           navigate('/login');
           return;
         }
@@ -45,18 +49,16 @@ function Home() {
         }
 
         const data = await response.json();
-        // data podria tener formato { results: [...] } o simplemente el array si no hay paginacion
         const postsData = Array.isArray(data) ? data : (data.results || []);
         
-        // Mapear los datos del backend a las props que necesita PostCard
         const mappedPosts = postsData.map(post => ({
           id: post.id,
           username: post.user || 'Usuario anónimo',
-          avatar: '🎮', // placeholder, idealmente del backend
-          timeAgo: new Date(post.created_at).toLocaleDateString(), // o usar date-fns
-          content: post.title || post.content, // PostListSerializer usa title
+          avatar: '🎮', 
+          timeAgo: getTimeAgo(post.created_at),
+          content: post.content || post.title, 
           tag: post.category || 'General',
-          imageUrl: null // PostList no tiene imágenes por ahora
+          imageUrl: null 
         }));
 
         setPosts(mappedPosts);
@@ -69,7 +71,7 @@ function Home() {
     };
 
     fetchPosts();
-  }, [logout, navigate]);
+  }, [navigate]);
 
   return (
     <div className="d-flex flex-column min-vh-100">
