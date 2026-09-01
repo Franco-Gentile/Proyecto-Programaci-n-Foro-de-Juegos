@@ -1,27 +1,25 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   login,
   register,
   logout,
   getSession,
   SESSION_KEY,
+  TOKEN_KEY,
+  REFRESH_TOKEN_KEY
 } from './authService';
 
-// Stub mínimo de localStorage para entorno node: authService solo usa
-// getItem/setItem/removeItem.
+// Stub de localStorage para test environment
 class MemoryStorage {
   constructor() {
     this.store = new Map();
   }
-
   getItem(key) {
     return this.store.has(key) ? this.store.get(key) : null;
   }
-
   setItem(key, value) {
     this.store.set(key, String(value));
   }
-
   removeItem(key) {
     this.store.delete(key);
   }
@@ -29,11 +27,23 @@ class MemoryStorage {
 
 beforeEach(() => {
   globalThis.localStorage = new MemoryStorage();
+  globalThis.fetch = vi.fn();
 });
 
 describe('login', () => {
-  it('acepta credenciales del usuario demo y guarda la sesión sin datos sensibles', () => {
-    const result = login('admin', 'admin123');
+  it('hace login correctamente, obtiene datos del usuario y guarda tokens', async () => {
+    // Mock login endpoint
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access: 'fake-access', refresh: 'fake-refresh' }),
+    });
+    // Mock me endpoint
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 1, username: 'admin', email: 'admin@test.com' }),
+    });
+
+    const result = await login('admin', 'admin123');
 
     expect(result.success).toBe(true);
     expect(result.user).toEqual({
@@ -41,119 +51,87 @@ describe('login', () => {
       username: 'admin',
       email: 'admin@test.com',
     });
+    
+    expect(localStorage.getItem(TOKEN_KEY)).toBe('fake-access');
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('fake-refresh');
     expect(getSession()).toEqual(result.user);
-
-    const rawSession = localStorage.getItem(SESSION_KEY);
-    expect(rawSession).not.toContain('passwordHash');
   });
 
-  it('rechaza credenciales incorrectas con error genérico y no deja sesión', () => {
-    const result = login('admin', 'wrong-password');
+  it('devuelve error si las credenciales son incorrectas (401)', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ detail: 'No active account found with the given credentials' }),
+    });
+
+    const result = await login('admin', 'wrong');
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Credenciales incorrectas');
+    expect(result.error).toBe('No active account found with the given credentials');
     expect(getSession()).toBeNull();
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
-  it('es case-insensitive en el usuario e ignora espacios', () => {
-    const result = login('  ADMIN ', 'admin123');
+  it('no guarda tokens si falla la obtención del usuario', async () => {
+    // Mock login endpoint
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access: 'fake-access', refresh: 'fake-refresh' }),
+    });
+    // Mock me endpoint falla
+    fetch.mockResolvedValueOnce({
+      ok: false,
+    });
 
-    expect(result.success).toBe(true);
-    expect(result.user.username).toBe('admin');
+    const result = await login('admin', 'admin123');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('No se pudo obtener la información del usuario');
+    expect(getSession()).toBeNull();
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 });
 
 describe('register', () => {
-  it('registra un usuario nuevo con id único y puede loguearse después', () => {
-    const result = register('nuevoUsuario', 'nuevo@test.com', 'secreta123');
-
-    expect(result.success).toBe(true);
-    expect(result.user.username).toBe('nuevousuario');
-    expect(typeof result.user.id).toBe('string');
-    expect(result.user.id).toMatch(/^[0-9a-f-]{36}$/);
-
-    const relogin = login('NuevoUsuario', 'secreta123');
-    expect(relogin.success).toBe(true);
-  });
-
-  it('normaliza username y email a minúsculas', () => {
-    const result = register('  Pepe  ', 'PEPE@Test.COM ', 'secreta123');
-
-    expect(result.success).toBe(true);
-    expect(result.user).toEqual({
-      id: result.user.id,
-      username: 'pepe',
-      email: 'pepe@test.com',
+  it('registra correctamente a un nuevo usuario', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}), // El backend suele devolver el user pero no lo usamos
     });
-  });
 
-  it('NO persiste la contraseña en texto plano en localStorage', () => {
-    register('juan', 'juan@test.com', 'secreta123');
+    const result = await register('nuevo', 'nuevo@test.com', 'secreta123');
 
-    const rawUsers = localStorage.getItem('registeredUsers');
-    expect(rawUsers).not.toContain('secreta123');
-    expect(rawUsers).toContain('passwordHash');
-  });
-
-  it('rechuta usuarios duplicados sin importar mayúsculas', () => {
-    register('juan', 'juan@test.com', 'secreta123');
-
-    const duplicate = register('JUAN', 'otro@test.com', 'secreta456');
-    expect(duplicate.success).toBe(false);
-    expect(duplicate.error).toBe('El usuario ya existe');
-  });
-
-  it('rechaza emails duplicados sin importar mayúsculas', () => {
-    register('juan', 'juan@test.com', 'secreta123');
-
-    const duplicate = register('juan2', 'Juan@Test.com', 'secreta456');
-    expect(duplicate.success).toBe(false);
-    expect(duplicate.error).toBe('El email ya está registrado');
-  });
-
-  it('rechaza emails con formato inválido', () => {
-    const result = register('juan', 'no-es-un-email', 'secreta123');
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('email');
-  });
-
-  it('rechaza contraseñas cortas (mínimo 8 caracteres)', () => {
-    const result = register('juan', 'juan@test.com', 'corta12');
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('8 caracteres');
-  });
-
-  it('rechaza campos vacíos o solo espacios', () => {
-    expect(register('   ', 'a@test.com', 'secreta123').success).toBe(false);
-    expect(register('juan', '   ', 'secreta123').success).toBe(false);
-    expect(register('juan', 'a@test.com', '').success).toBe(false);
-  });
-
-  it('sigue funcionando si registeredUsers tiene JSON corrupto', () => {
-    localStorage.setItem('registeredUsers', '{json roto');
-
-    const result = register('juan', 'juan@test.com', 'secreta123');
     expect(result.success).toBe(true);
+  });
 
-    const relogin = login('juan', 'secreta123');
-    expect(relogin.success).toBe(true);
+  it('maneja errores de validación del backend', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ username: ['A user with that username already exists.'] }),
+    });
+
+    const result = await register('duplicado', 'test@test.com', '12345678');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Usuario: A user with that username already exists.');
   });
 });
 
 describe('logout / sesión', () => {
-  it('elimina la clave de sesión (no deja el string "null")', () => {
-    login('user', 'user123');
-    expect(localStorage.getItem(SESSION_KEY)).not.toBeNull();
+  it('elimina todas las claves locales de sesión', async () => {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ id: 1 }));
+    localStorage.setItem(TOKEN_KEY, 'fake');
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'fake');
 
-    logout();
+    fetch.mockResolvedValueOnce({ ok: true }); // Mock logout request
+
+    await logout();
 
     expect(getSession()).toBeNull();
-    expect(localStorage.getItem(SESSION_KEY)).toBeNull();
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull();
   });
 
-  it('devuelve null si la sesión guardada está corrupta, sin lanzar excepción', () => {
+  it('devuelve null si la sesión guardada está corrupta', () => {
     localStorage.setItem(SESSION_KEY, '{corrupto');
 
     expect(() => getSession()).not.toThrow();
