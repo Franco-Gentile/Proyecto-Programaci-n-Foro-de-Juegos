@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { getCategories } from '../services/forumService';
 
 const ICONS = ['🎮', '⚔️', '👾', '🔫', '🕹️', '🛡️', '🏎️', '⛏️', '🥷', '🎲', '🗡️', '🤖', '⚽', '🧟', '💥', '⚡', '🪲'];
@@ -42,13 +43,14 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
       try {
         setLoading(true);
         setError('');
-        const data = await getCategories();
+        // En el sidebar del foro principal mostramos exclusivamente los Géneros
+        const data = await getCategories({ is_genre: true });
         if (isMounted) {
           setCategories(data);
         }
       } catch (err) {
         if (isMounted) {
-          setError('No se pudieron cargar los juegos.');
+          setError('No se pudieron cargar los géneros.');
           console.error(err);
         }
       } finally {
@@ -85,7 +87,7 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
       {/* Cabecera Sidebar */}
       <div className="d-flex align-items-center justify-content-between mb-2">
         <h2 className="sidebar-custom-title mb-0">
-          Comunidades <span className="small text-muted" style={{ fontSize: '12px' }}>({categories.length})</span>
+          Géneros <span className="small text-muted" style={{ fontSize: '12px' }}>({categories.length})</span>
         </h2>
         {selectedCategory && (
           <button
@@ -98,7 +100,7 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
               padding: '2px 8px',
               border: '2px solid var(--border-dark)',
             }}
-            title="Quitar filtro de comunidad"
+            title="Quitar filtro de género"
           >
             ✕ Ver todos
           </button>
@@ -111,7 +113,7 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
           <input
             type="search"
             className="form-control form-control-sm"
-            placeholder="🔎 Filtrar comunidades..."
+            placeholder="🔎 Filtrar géneros..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             style={{
@@ -128,10 +130,10 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
       {loading && (
         <div className="text-center py-4">
           <div className="spinner-border spinner-border-sm text-secondary" role="status">
-            <span className="visually-hidden">Cargando comunidades...</span>
+            <span className="visually-hidden">Cargando géneros...</span>
           </div>
           <p className="small text-muted mt-2 mb-0" style={{ fontFamily: 'var(--font-pixel)', fontSize: '11px' }}>
-            Cargando juegos...
+            Cargando géneros...
           </p>
         </div>
       )}
@@ -144,13 +146,13 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
 
       {!loading && !error && categories.length === 0 && (
         <div className="text-center py-3 text-muted small">
-          No hay comunidades registradas aún.
+          No hay géneros registrados aún.
         </div>
       )}
 
       {!loading && !error && categories.length > 0 && (
         <ul className="sidebar-games-list">
-          {/* Opción Todos los juegos */}
+          {/* Opción Todos los géneros */}
           <li
             className={`sidebar-game-item ${selectedCategory === null ? 'sidebar-game-item-active' : ''}`}
             onClick={() => onSelectCategory && onSelectCategory(null)}
@@ -161,7 +163,7 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
           >
             <span className="sidebar-game-label">
               <span style={{ color: '#1a1a1a', marginRight: '4px' }}>*</span>
-              Todos los juegos
+              Todos los géneros
             </span>
             <span className="sidebar-game-icon-circle" role="img" aria-label="Todos">
               🌐
@@ -200,11 +202,41 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
 
           {filteredCategories.length === 0 && filterText && (
             <li className="text-center py-3 text-muted small">
-              No coincide ningún juego con "{filterText}"
+              No coincide ningún género con "{filterText}"
             </li>
           )}
         </ul>
       )}
+
+      {/* Botón al Catálogo de Juegos */}
+      <div className="pt-3 mt-2 border-top" style={{ borderColor: 'var(--border-dark)' }}>
+        <Link
+          to="/games"
+          className="btn w-100 text-decoration-none d-flex align-items-center justify-content-between p-2"
+          style={{
+            backgroundColor: '#ffb703',
+            color: '#1a1a1a',
+            border: '2.5px solid var(--border-dark)',
+            borderRadius: '16px',
+            boxShadow: '2.5px 2.5px 0px var(--border-dark)',
+            fontFamily: 'var(--font-pixel)',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translate(-2px, -2px)';
+            e.currentTarget.style.boxShadow = '4px 4px 0px var(--border-dark)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '2.5px 2.5px 0px var(--border-dark)';
+          }}
+        >
+          <span>🎮 Catálogo de Juegos</span>
+          <span style={{ fontSize: '14px' }}>➔</span>
+        </Link>
+      </div>
     </aside>
   );
 }

@@ -47,6 +47,7 @@ function PostCard({
   tag = 'General',
   imageUrl,
   commentCount = null,
+  isGame = false,
   onReport,
   onDelete,
   canDelete = false,
@@ -130,10 +131,20 @@ function PostCard({
         </>
       )}
 
-      {/* Tag de Categoría */}
+      {/* Tag de Categoría / Juego */}
       {tag && (
         <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-          <div className="post-tag-badge mb-0">🏷️ {tag}</div>
+          <div
+            className="post-tag-badge mb-0"
+            style={{
+              backgroundColor: isGame ? '#fef3c7' : '#ede9fe',
+              borderColor: isGame ? '#d97706' : '#7c3aed',
+              color: isGame ? '#92400e' : '#5b21b6',
+            }}
+          >
+            {isGame ? '🎮 Juego: ' : '🏷️ Género: '}
+            <span className="fw-bold">{tag}</span>
+          </div>
           {id && (
             <Link
               to={`/posts/${id}`}

@@ -31,12 +31,12 @@ function Home() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [reportModalState, setReportModalState] = useState({ isOpen: false, postId: null, title: '' });
   const [feedbackMsg, setFeedbackMsg] = useState('');
 
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
+  const categoryParam = searchParams.get('category') || null;
 
   const { user } = useAuth();
 
@@ -45,7 +45,7 @@ function Home() {
       setLoading(true);
       setError('');
       const data = await getPosts({
-        category: selectedCategory,
+        category: categoryParam,
         search: searchQuery,
       });
 
@@ -56,7 +56,7 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, searchQuery]);
+  }, [categoryParam, searchQuery]);
 
   useEffect(() => {
     fetchPostList();
@@ -90,19 +90,17 @@ function Home() {
   };
 
   const handleSelectCategory = (catId) => {
-    setSelectedCategory(catId);
-    if (searchQuery) {
-      searchParams.delete('search');
-      setSearchParams(searchParams);
+    const next = new URLSearchParams(searchParams);
+    if (catId) {
+      next.set('category', catId);
+    } else {
+      next.delete('category');
     }
+    setSearchParams(next);
   };
 
   const clearFilters = () => {
-    setSelectedCategory(null);
-    if (searchQuery) {
-      searchParams.delete('search');
-      setSearchParams(searchParams);
-    }
+    setSearchParams({});
   };
 
   const isUserOwnerOrAdmin = (post) => {
@@ -120,10 +118,10 @@ function Home() {
       <main className="flex-grow-1 forum-main-layout">
         <div className="container-fluid px-3 px-md-5">
           <div className="row justify-content-center g-4">
-            {/* Columna Izquierda: Sidebar Comunidades / Juegos con scroll independiente */}
+            {/* Columna Izquierda: Sidebar Géneros con scroll independiente */}
             <div className="col-12 col-md-5 col-lg-4 col-xl-3">
               <Sidebar
-                selectedCategory={selectedCategory}
+                selectedCategory={categoryParam}
                 onSelectCategory={handleSelectCategory}
               />
             </div>
@@ -169,14 +167,18 @@ function Home() {
                   >
                     {searchQuery
                       ? `🔍 Búsqueda: "${searchQuery}"`
-                      : selectedCategory
-                      ? '🎮 Feed Filtrado por Comunidad'
+                      : categoryParam
+                      ? posts.length > 0 && posts[0].category_is_genre === false
+                        ? `🎮 Discusiones de: ${posts[0].category}`
+                        : posts.length > 0
+                        ? `🏷️ Género: ${posts[0].category}`
+                        : '🎮 Feed Filtrado'
                       : '🔥 Todas las Publicaciones'}
                   </h1>
-                  {(selectedCategory || searchQuery) && (
+                  {(categoryParam || searchQuery) && (
                     <button
                       type="button"
-                      className="btn btn-link text-danger p-0 small fw-bold"
+                      className="btn btn-link text-danger p-0 small fw-bold mt-1"
                       onClick={clearFilters}
                       style={{ fontSize: '12px' }}
                     >
@@ -296,6 +298,7 @@ function Home() {
                       avatar="🎮"
                       timeAgo={getTimeAgo(post.created_at)}
                       tag={typeof post.category === 'string' ? post.category : (post.category?.name || 'General')}
+                      isGame={post.category_is_genre === false}
                       imageUrl={post.images && post.images.length > 0 ? post.images[0].image_url : null}
                       onReport={handleOpenReport}
                       onDelete={handleDeletePost}

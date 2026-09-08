@@ -108,7 +108,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        return Category.objects.all()
+        qs = Category.objects.all()
+        is_genre = self.request.query_params.get('is_genre')
+        search = self.request.query_params.get('search')
+        if is_genre is not None:
+            if is_genre.lower() in ['true', '1']:
+                qs = qs.filter(is_genre=True)
+            elif is_genre.lower() in ['false', '0']:
+                qs = qs.filter(is_genre=False)
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
+        return qs
 
 
 class PostViewSet(viewsets.ModelViewSet):

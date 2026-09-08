@@ -14,8 +14,19 @@ function extractResults(data) {
    CATEGORÍAS / JUEGOS
    ========================================================================== */
 
-export async function getCategories() {
-  const response = await fetchWithAuth(`${API_URL}/categories/`);
+export async function getCategories({ is_genre, search, page_size = 100 } = {}) {
+  const params = new URLSearchParams();
+  if (is_genre !== undefined && is_genre !== null) {
+    params.append('is_genre', is_genre);
+  }
+  if (search) {
+    params.append('search', search);
+  }
+  if (page_size) {
+    params.append('page_size', page_size);
+  }
+  const url = `${API_URL}/categories/${params.toString() ? `?${params.toString()}` : ''}`;
+  const response = await fetchWithAuth(url);
   if (!response.ok) {
     throw new Error('Error al cargar las categorías');
   }
@@ -23,11 +34,11 @@ export async function getCategories() {
   return extractResults(data);
 }
 
-export async function createCategory({ name, description = '' }) {
+export async function createCategory({ name, description = '', image_url = '', is_genre = false }) {
   const response = await fetchWithAuth(`${API_URL}/categories/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify({ name, description, image_url, is_genre }),
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -36,11 +47,15 @@ export async function createCategory({ name, description = '' }) {
   return await response.json();
 }
 
-export async function updateCategory(id, { name, description = '' }) {
+export async function updateCategory(id, { name, description = '', image_url, is_genre }) {
+  const payload = { name, description };
+  if (image_url !== undefined) payload.image_url = image_url;
+  if (is_genre !== undefined) payload.is_genre = is_genre;
+
   const response = await fetchWithAuth(`${API_URL}/categories/${id}/`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Home from './views/Home';
+import GamesCatalog from './views/GamesCatalog';
 import Login from './views/Login';
 import Register from './views/Register';
 import PostDetail from './views/PostDetail';
@@ -19,6 +20,7 @@ function App() {
         <Routes>
           {/* Rutas Públicas de Exploración */}
           <Route path="/" element={<Home />} />
+          <Route path="/games" element={<GamesCatalog />} />
           <Route path="/posts/:id" element={<PostDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
