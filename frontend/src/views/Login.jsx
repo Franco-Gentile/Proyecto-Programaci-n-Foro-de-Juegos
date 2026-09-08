@@ -17,7 +17,11 @@ function Login() {
     e.preventDefault();
     setError('');
 
-    const result = await login(username.trim(), password.trim());
+    const form = e.target;
+    const finalUsername = (username || form.username?.value || '').trim();
+    const finalPassword = password || form.password?.value || '';
+
+    const result = await login(finalUsername, finalPassword);
     if (result.success) {
       navigate('/');
     } else {
@@ -45,6 +49,7 @@ function Login() {
       <form onSubmit={handleSubmit} noValidate>
         <FormField
           id="username"
+          name="username"
           label="Usuario"
           value={username}
           onChange={setUsername}
@@ -55,6 +60,7 @@ function Login() {
 
         <FormField
           id="password"
+          name="password"
           label="Contraseña"
           type="password"
           value={password}
