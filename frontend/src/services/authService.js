@@ -94,7 +94,13 @@ export async function login(username, password) {
 
     if (userResponse.ok) {
       const userData = await userResponse.json();
-      const sessionUser = { id: userData.id, username: userData.username, email: userData.email };
+      const sessionUser = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        ...(userData.role ? { role: userData.role } : {}),
+        ...(userData.date_joined ? { date_joined: userData.date_joined } : {}),
+      };
       
       // Todo OK, persistimos sesión
       localStorage.setItem(TOKEN_KEY, data.access);
