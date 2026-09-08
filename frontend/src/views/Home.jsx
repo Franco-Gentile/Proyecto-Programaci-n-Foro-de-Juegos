@@ -204,7 +204,7 @@ function Home() {
               </div>
 
               {/* Mensaje de bienvenida para usuario logueado */}
-              {user && !error && !selectedCategory && !searchQuery && (
+              {user && !error && !categoryParam && !searchQuery && (
                 <div
                   className="alert mb-3"
                   style={{
@@ -261,7 +261,7 @@ function Home() {
                       No se encontraron publicaciones
                     </h4>
                     <p className="text-muted small mb-3">
-                      {searchQuery || selectedCategory
+                      {searchQuery || categoryParam
                         ? 'No hay posts que coincidan con los filtros seleccionados.'
                         : 'El foro todavía no tiene publicaciones. ¡Sé el primero en crear una!'}
                     </p>
