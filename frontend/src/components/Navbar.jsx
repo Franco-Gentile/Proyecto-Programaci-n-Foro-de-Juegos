@@ -32,40 +32,41 @@ function Navbar() {
   return (
     <nav className="navbar navbar-expand-lg navbar-custom">
       <div className="container-fluid px-3 px-md-4">
-        {/* Brand Group: Logo circular + Box Games */}
-        <div className="d-flex align-items-center gap-3">
-          <Link to="/" className="brand-circle-btn" aria-label="Inicio">
-            <svg
-              className="brand-circle-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="6" y1="18" x2="18" y2="6" />
-              <line x1="6" y1="6" x2="6.01" y2="6" />
-              <line x1="18" y1="18" x2="18.01" y2="18" />
-            </svg>
-          </Link>
-
-          <Link to="/" className="text-decoration-none">
-            <div className="brand-pixel-box">Games</div>
+        {/* Brand Group: Box Games sin botón innecesario */}
+        <div className="d-flex align-items-center">
+          <Link to="/" className="text-decoration-none" aria-label="Inicio Games">
+            <div className="brand-pixel-box d-flex align-items-center gap-2">
+              <span style={{ fontSize: '18px' }}>🎮</span>
+              <span>Games</span>
+            </div>
           </Link>
         </div>
 
         {/* Barra de búsqueda central: desktop */}
         <div className="d-none d-lg-flex flex-grow-1 justify-content-center mx-4">
-          <form onSubmit={handleSearchSubmit} className="search-capsule-container">
+          <form onSubmit={handleSearchSubmit} className="search-capsule-container position-relative">
             <input
               className="search-capsule-input"
               type="search"
-              placeholder="Buscar juegos, publicaciones..."
+              placeholder="Buscar juegos, categorías (ej: RPG), temas..."
               aria-label="Buscar"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                className="btn btn-sm btn-link text-muted p-0 me-1"
+                onClick={() => {
+                  setSearchQuery('');
+                  navigate('/');
+                }}
+                style={{ textDecoration: 'none', fontSize: '14px' }}
+                title="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
             <button
               className="search-circle-btn"
               type="submit"
@@ -176,15 +177,29 @@ function Navbar() {
         {/* Menú colapsable en mobile */}
         <div className="collapse navbar-collapse mt-3 mt-lg-0" id="navbarMenu">
           <form onSubmit={handleSearchSubmit} className="d-lg-none my-3">
-            <div className="search-capsule-container">
+            <div className="search-capsule-container position-relative">
               <input
                 className="search-capsule-input"
                 type="search"
-                placeholder="Buscar juegos, publicaciones..."
+                placeholder="Buscar juegos, categorías (ej: RPG), temas..."
                 aria-label="Buscar"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link text-muted p-0 me-1"
+                  onClick={() => {
+                    setSearchQuery('');
+                    navigate('/');
+                  }}
+                  style={{ textDecoration: 'none', fontSize: '14px' }}
+                  title="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
               <button
                 className="search-circle-btn"
                 type="submit"

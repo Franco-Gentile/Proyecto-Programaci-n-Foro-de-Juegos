@@ -197,30 +197,54 @@
   background-color: var(--card-white);
   border: 3px solid var(--border-dark);
   border-radius: 28px;
-  padding: 24px 18px;
+  padding: 20px 16px;
   box-shadow: 4px 4px 0px var(--border-dark);
   position: sticky;
   top: 90px;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-custom-title {
   font-family: var(--font-pixel);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-dark);
-  text-align: center;
-  margin-bottom: 22px;
-  padding-bottom: 6px;
   letter-spacing: -0.5px;
 }
 
 .sidebar-games-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   margin: 0;
-  padding: 0;
+  padding: 4px 6px 6px 0;
   list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  overscroll-behavior: contain;
+}
+
+/* Scrollbar retro estilizado e independiente para comunidades */
+.sidebar-games-list::-webkit-scrollbar {
+  width: 7px;
+}
+
+.sidebar-games-list::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 6px;
+  border: 1px solid var(--border-dark);
+}
+
+.sidebar-games-list::-webkit-scrollbar-thumb {
+  background: #2b3a42;
+  border-radius: 6px;
+  border: 1px solid var(--border-dark);
+}
+
+.sidebar-games-list::-webkit-scrollbar-thumb:hover {
+  background: #ff5252;
 }
 
 .sidebar-game-item {

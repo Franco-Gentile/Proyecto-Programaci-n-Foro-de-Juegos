@@ -132,7 +132,13 @@ class PostViewSet(viewsets.ModelViewSet):
             else:
                 qs = qs.filter(user__username__iexact=user_param)
         if search:
-            qs = qs.filter(Q(title__icontains=search) | Q(content__icontains=search))
+            qs = qs.filter(
+                Q(title__icontains=search)
+                | Q(content__icontains=search)
+                | Q(category__name__icontains=search)
+                | Q(category__description__icontains=search)
+                | Q(user__username__icontains=search)
+            )
         return qs
 
     def get_serializer_class(self):

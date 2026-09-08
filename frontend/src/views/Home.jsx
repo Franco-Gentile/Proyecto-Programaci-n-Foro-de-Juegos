@@ -89,6 +89,14 @@ function Home() {
     }
   };
 
+  const handleSelectCategory = (catId) => {
+    setSelectedCategory(catId);
+    if (searchQuery) {
+      searchParams.delete('search');
+      setSearchParams(searchParams);
+    }
+  };
+
   const clearFilters = () => {
     setSelectedCategory(null);
     if (searchQuery) {
@@ -112,16 +120,16 @@ function Home() {
       <main className="flex-grow-1 forum-main-layout">
         <div className="container-fluid px-3 px-md-5">
           <div className="row justify-content-center g-4">
-            {/* Columna Izquierda: Sidebar Comunidades / Juegos */}
-            <div className="col-12 col-md-5 col-lg-3 col-xl-3">
+            {/* Columna Izquierda: Sidebar Comunidades / Juegos con scroll independiente */}
+            <div className="col-12 col-md-5 col-lg-4 col-xl-3">
               <Sidebar
                 selectedCategory={selectedCategory}
-                onSelectCategory={(catId) => setSelectedCategory(catId)}
+                onSelectCategory={handleSelectCategory}
               />
             </div>
 
             {/* Columna Central: Muro del Foro */}
-            <div className="col-12 col-md-7 col-lg-7 col-xl-6">
+            <div className="col-12 col-md-7 col-lg-8 col-xl-7">
               {feedbackMsg && (
                 <div
                   className="alert alert-success alert-dismissible fade show"
