@@ -56,10 +56,13 @@ class PostSerializer(serializers.ModelSerializer):
 class PostListSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
     category = serializers.StringRelatedField()
+    category_id = serializers.IntegerField(source='category.id', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    user_role = serializers.CharField(source='user.role', read_only=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'user', 'category', 'created_at', 'is_deleted']
+        fields = ['id', 'title', 'content', 'user', 'user_id', 'user_role', 'category', 'category_id', 'created_at', 'is_deleted']
 
 
 class CommentSerializer(serializers.ModelSerializer):

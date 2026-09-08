@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -116,7 +117,23 @@ class PostViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        return Post.objects.filter(is_deleted=False)
+        qs = Post.objects.filter(is_deleted=False)
+        category = self.request.query_params.get('category')
+        user_param = self.request.query_params.get('user')
+        search = self.request.query_params.get('search')
+        if category:
+            if str(category).isdigit():
+                qs = qs.filter(category_id=category)
+            else:
+                qs = qs.filter(category__name__iexact=category)
+        if user_param:
+            if str(user_param).isdigit():
+                qs = qs.filter(user_id=user_param)
+            else:
+                qs = qs.filter(user__username__iexact=user_param)
+        if search:
+            qs = qs.filter(Q(title__icontains=search) | Q(content__icontains=search))
+        return qs
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -145,7 +162,11 @@ class CommentViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        return Comment.objects.filter(is_deleted=False)
+        qs = Comment.objects.filter(is_deleted=False)
+        post_id = self.request.query_params.get('post')
+        if post_id:
+            qs = qs.filter(post_id=post_id)
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
