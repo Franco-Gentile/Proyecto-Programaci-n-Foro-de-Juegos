@@ -1,14 +1,33 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+
+  // Sincroniza el input si cambia el searchParam en la URL
+  useEffect(() => {
+    setSearchQuery(searchParams.get('search') || '');
+  }, [searchParams]);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const isAdminOrMod = user && (user.role === 'ADMIN' || user.role === 'MODERATOR');
 
   return (
     <nav className="navbar navbar-expand-lg navbar-custom">
@@ -38,16 +57,18 @@ function Navbar() {
 
         {/* Barra de búsqueda central: desktop */}
         <div className="d-none d-lg-flex flex-grow-1 justify-content-center mx-4">
-          <div className="search-capsule-container">
+          <form onSubmit={handleSearchSubmit} className="search-capsule-container">
             <input
               className="search-capsule-input"
               type="search"
               placeholder="Buscar juegos, publicaciones..."
               aria-label="Buscar"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
             <button
               className="search-circle-btn"
-              type="button"
+              type="submit"
               aria-label="Buscar"
             >
               <svg
@@ -63,17 +84,62 @@ function Navbar() {
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </button>
-          </div>
+          </form>
         </div>
 
-        {/* Sección de autenticación: desktop */}
-        <div className="d-none d-lg-flex align-items-center gap-3">
+        {/* Sección de autenticación y accesos: desktop */}
+        <div className="d-none d-lg-flex align-items-center gap-2">
           {user ? (
             <>
-              <div className="nav-user-badge">
+              {/* Botón Crear Post */}
+              <Link
+                to="/create-post"
+                className="btn-retro-auth text-decoration-none"
+                style={{
+                  backgroundColor: '#22c55e',
+                  borderColor: '#15803d',
+                  color: '#ffffff',
+                }}
+                title="Crear una nueva publicación"
+              >
+                + Crear Post
+              </Link>
+
+              {/* Acceso al Panel Admin si tiene permiso */}
+              {isAdminOrMod && (
+                <Link
+                  to="/admin"
+                  className="btn-retro-auth text-decoration-none"
+                  style={{
+                    backgroundColor: '#f59e0b',
+                    borderColor: '#b45309',
+                    color: '#ffffff',
+                  }}
+                  title="Panel de Administración y Moderación"
+                >
+                  ⚙️ Admin
+                </Link>
+              )}
+
+              {/* Perfil del usuario */}
+              <Link
+                to="/profile"
+                className="nav-user-badge text-decoration-none"
+                title="Ver mi perfil"
+              >
                 <span>🎮</span>
                 <span>{user.username}</span>
-              </div>
+                {user.role === 'ADMIN' && (
+                  <span className="badge bg-warning text-dark px-1">👑</span>
+                )}
+                {user.role === 'MODERATOR' && (
+                  <span className="badge bg-purple text-white px-1" style={{ backgroundColor: '#8b5cf6' }}>
+                    🛡️
+                  </span>
+                )}
+              </Link>
+
+              {/* Botón Logout */}
               <button className="btn-logout-retro" onClick={handleLogout}>
                 Logout
               </button>
@@ -109,17 +175,19 @@ function Navbar() {
 
         {/* Menú colapsable en mobile */}
         <div className="collapse navbar-collapse mt-3 mt-lg-0" id="navbarMenu">
-          <div className="d-lg-none my-3">
+          <form onSubmit={handleSearchSubmit} className="d-lg-none my-3">
             <div className="search-capsule-container">
               <input
                 className="search-capsule-input"
                 type="search"
                 placeholder="Buscar juegos, publicaciones..."
                 aria-label="Buscar"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
               <button
                 className="search-circle-btn"
-                type="button"
+                type="submit"
                 aria-label="Buscar"
               >
                 <svg
@@ -136,15 +204,36 @@ function Navbar() {
                 </svg>
               </button>
             </div>
-          </div>
+          </form>
 
           <div className="d-lg-none d-flex flex-column gap-2 pb-2">
             {user ? (
               <>
-                <div className="nav-user-badge justify-content-center">
+                <Link
+                  to="/create-post"
+                  className="btn-retro-auth w-100 py-2 text-center"
+                  style={{ backgroundColor: '#22c55e' }}
+                >
+                  + Crear Post
+                </Link>
+                {isAdminOrMod && (
+                  <Link
+                    to="/admin"
+                    className="btn-retro-auth w-100 py-2 text-center"
+                    style={{ backgroundColor: '#f59e0b' }}
+                  >
+                    ⚙️ Panel de Administración
+                  </Link>
+                )}
+                <Link
+                  to="/profile"
+                  className="nav-user-badge justify-content-center text-decoration-none"
+                >
                   <span>🎮</span>
                   <span>{user.username}</span>
-                </div>
+                  {user.role === 'ADMIN' && <span>(Admin)</span>}
+                  {user.role === 'MODERATOR' && <span>(Mod)</span>}
+                </Link>
                 <button
                   className="btn-logout-retro w-100 py-2"
                   onClick={handleLogout}
