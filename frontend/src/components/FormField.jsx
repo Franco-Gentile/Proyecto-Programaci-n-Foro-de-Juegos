@@ -1,5 +1,6 @@
 function FormField({
   id,
+  name,
   label,
   type = 'text',
   value,
@@ -18,8 +19,10 @@ function FormField({
         type={type}
         className="form-control form-control-custom"
         id={id}
+        name={name || id}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => onChange && onChange(event.target.value)}
+        onInput={(event) => onChange && onChange(event.target.value)}
         placeholder={placeholder}
         minLength={minLength}
         autoComplete={autoComplete}
