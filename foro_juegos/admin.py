@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Category, Post, Comment, Image, Report
+from .models import User, Category, Game, Post, Comment, Image, Report
 
 
 @admin.register(User)
@@ -16,16 +16,25 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
+@admin.register(Game)
+class GameAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'description')
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+    filter_horizontal = ('genres',)
+
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description')
-    search_fields = ('name',)
+    list_display = ('name', 'slug', 'description')
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
 
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'category', 'created_at', 'is_deleted')
-    list_filter = ('category', 'is_deleted', 'created_at')
+    list_display = ('title', 'user', 'game', 'category', 'created_at', 'is_deleted')
+    list_filter = ('game', 'category', 'is_deleted', 'created_at')
     search_fields = ('title', 'content')
 
 

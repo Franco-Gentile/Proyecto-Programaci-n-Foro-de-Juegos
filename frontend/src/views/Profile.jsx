@@ -258,7 +258,7 @@ function Profile() {
                     username={user.username}
                     userRole={user.role}
                     avatar="👾"
-                    tag={typeof post.category === 'string' ? post.category : post.category?.name}
+                    tag={post.game ? (typeof post.game === 'string' ? post.game : post.game.name) : (typeof post.category === 'string' ? post.category : post.category?.name)}
                     canDelete={true}
                     onDelete={handleDeletePost}
                   />

@@ -6,10 +6,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Category, Post, Comment, Image, Report
+from .models import User, Category, Game, Post, Comment, Image, Report
 from .serializers import (
     UserSerializer, UserCreateSerializer,
-    CategorySerializer,
+    CategorySerializer, GameSerializer,
     PostSerializer, PostListSerializer,
     CommentSerializer,
     ImageSerializer,
@@ -109,15 +109,29 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Category.objects.all()
-        is_genre = self.request.query_params.get('is_genre')
         search = self.request.query_params.get('search')
-        if is_genre is not None:
-            if is_genre.lower() in ['true', '1']:
-                qs = qs.filter(is_genre=True)
-            elif is_genre.lower() in ['false', '0']:
-                qs = qs.filter(is_genre=False)
         if search:
             qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
+        slug = self.request.query_params.get('slug')
+        if slug:
+            qs = qs.filter(slug=slug)
+        return qs
+
+
+class GameViewSet(viewsets.ModelViewSet):
+    queryset = Game.objects.all()
+    serializer_class = GameSerializer
+    permission_classes = [IsAdminOrModerator]
+    pagination_class = StandardPagination
+
+    def get_queryset(self):
+        qs = Game.objects.all()
+        search = self.request.query_params.get('search')
+        slug = self.request.query_params.get('slug')
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
+        if slug:
+            qs = qs.filter(slug=slug)
         return qs
 
 
@@ -129,13 +143,19 @@ class PostViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Post.objects.filter(is_deleted=False)
         category = self.request.query_params.get('category')
+        game = self.request.query_params.get('game')
         user_param = self.request.query_params.get('user')
         search = self.request.query_params.get('search')
         if category:
             if str(category).isdigit():
                 qs = qs.filter(category_id=category)
             else:
-                qs = qs.filter(category__name__iexact=category)
+                qs = qs.filter(Q(category__name__iexact=category) | Q(category__slug__iexact=category))
+        if game:
+            if str(game).isdigit():
+                qs = qs.filter(game_id=game)
+            else:
+                qs = qs.filter(Q(game__name__iexact=game) | Q(game__slug__iexact=game))
         if user_param:
             if str(user_param).isdigit():
                 qs = qs.filter(user_id=user_param)
@@ -147,6 +167,7 @@ class PostViewSet(viewsets.ModelViewSet):
                 | Q(content__icontains=search)
                 | Q(category__name__icontains=search)
                 | Q(category__description__icontains=search)
+                | Q(game__name__icontains=search)
                 | Q(user__username__icontains=search)
             )
         return qs

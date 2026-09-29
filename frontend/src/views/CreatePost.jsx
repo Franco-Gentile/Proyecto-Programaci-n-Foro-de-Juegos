@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { getCategories, createPost } from '../services/forumService';
+import { getGames, createPost } from '../services/forumService';
 
 function CreatePost() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [loadingCats, setLoadingCats] = useState(true);
+  const [gameId, setCategoryId] = useState('');
+  const [games, setCategories] = useState([]);
+  const [loadingGames, setLoadingCats] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,7 +20,7 @@ function CreatePost() {
     const fetchCats = async () => {
       try {
         setLoadingCats(true);
-        const data = await getCategories();
+        const data = await getGames();
         if (isMounted) {
           setCategories(data);
           if (data.length > 0) {
@@ -46,7 +46,7 @@ function CreatePost() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim() || !categoryId) {
+    if (!title.trim() || !content.trim() || !gameId) {
       setError('Por favor completá todos los campos requeridos.');
       return;
     }
@@ -57,7 +57,7 @@ function CreatePost() {
       const newPost = await createPost({
         title: title.trim(),
         content: content.trim(),
-        category_id: parseInt(categoryId, 10),
+        game_id: parseInt(gameId, 10),
       });
 
       // Redirige al nuevo post creado
@@ -145,12 +145,12 @@ function CreatePost() {
                 <label className="form-label fw-bold small">
                   Comunidad / Juego <span className="text-danger">*</span>
                 </label>
-                {loadingCats ? (
+                {loadingGames ? (
                   <div className="spinner-border spinner-border-sm text-secondary" role="status"></div>
                 ) : (
                   <select
                     className="form-select"
-                    value={categoryId}
+                    value={gameId}
                     onChange={(e) => setCategoryId(e.target.value)}
                     required
                     style={{
@@ -159,7 +159,7 @@ function CreatePost() {
                       padding: '10px',
                     }}
                   >
-                    {categories.map((cat) => (
+                    {games.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name} {cat.description ? `- ${cat.description}` : ''}
                       </option>
@@ -225,7 +225,7 @@ function CreatePost() {
                 <button
                   type="submit"
                   className="btn btn-success d-flex align-items-center gap-2 px-4"
-                  disabled={submitting || loadingCats || categories.length === 0}
+                  disabled={submitting || loadingGames || games.length === 0}
                   style={{
                     border: '2.5px solid var(--border-dark)',
                     boxShadow: '3px 3px 0px var(--border-dark)',

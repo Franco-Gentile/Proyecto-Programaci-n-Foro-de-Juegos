@@ -258,10 +258,13 @@ function PostDetail() {
                   {post.title}
                 </h1>
 
-                {post.category && (
+                {(post.game || post.category) && (
                   <div className="mb-3">
                     <span className="post-tag-badge">
-                      🏷️ {typeof post.category === 'string' ? post.category : post.category?.name}
+                      {post.game ? '🎮 ' : '🏷️ '}
+                      {post.game
+                        ? (typeof post.game === 'string' ? post.game : post.game.name)
+                        : (typeof post.category === 'string' ? post.category : post.category?.name)}
                     </span>
                   </div>
                 )}

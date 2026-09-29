@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Category, Post, Comment, Image, Report
+from .models import User, Category, Game, Post, Comment, Image, Report
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -40,33 +40,59 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class GameSerializer(serializers.ModelSerializer):
+    post_count = serializers.IntegerField(source='posts.count', read_only=True)
+    categories = CategorySerializer(source='genres', many=True, read_only=True)
+
+    class Meta:
+        model = Game
+        fields = '__all__'
+
+
 class PostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
         source='category',
-        write_only=True
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    game = GameSerializer(read_only=True)
+    game_id = serializers.PrimaryKeyRelatedField(
+        queryset=Game.objects.all(),
+        source='game',
+        write_only=True,
+        required=False,
+        allow_null=True
     )
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'user', 'category', 'category_id', 'created_at', 'updated_at', 'is_deleted']
+        fields = ['id', 'title', 'content', 'user', 'category', 'category_id', 'game', 'game_id', 'created_at', 'updated_at', 'is_deleted']
         read_only_fields = ['created_at', 'updated_at']
+
+    def validate(self, attrs):
+        if not attrs.get('category') and not attrs.get('game'):
+            raise serializers.ValidationError("Un post debe pertenecer a un juego (game) o a un género (category).")
+        return attrs
 
 
 class PostListSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
     category = serializers.StringRelatedField()
+    game = serializers.StringRelatedField()
     category_id = serializers.IntegerField(source='category.id', read_only=True)
-    category_is_genre = serializers.BooleanField(source='category.is_genre', read_only=True)
     category_image = serializers.CharField(source='category.image_url', read_only=True)
+    game_id = serializers.IntegerField(source='game.id', read_only=True)
+    game_image = serializers.CharField(source='game.image_url', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     user_role = serializers.CharField(source='user.role', read_only=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'user', 'user_id', 'user_role', 'category', 'category_id', 'category_is_genre', 'category_image', 'created_at', 'is_deleted']
+        fields = ['id', 'title', 'content', 'user', 'user_id', 'user_role', 'game', 'game_id', 'game_image', 'category', 'category_id', 'category_image', 'created_at', 'is_deleted']
 
 
 class CommentSerializer(serializers.ModelSerializer):

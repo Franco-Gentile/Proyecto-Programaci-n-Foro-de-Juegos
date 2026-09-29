@@ -2,26 +2,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import GameModal from '../components/GameModal';
-import { useAuth } from '../context/AuthContext';
-import { getCategories, deleteCategory } from '../services/forumService';
+import { getGames } from '../services/forumService';
 
 function GamesCatalog() {
-  const { user } = useAuth();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterText, setFilterText] = useState('');
-  const [feedbackMsg, setFeedbackMsg] = useState('');
-  const [modalState, setModalState] = useState({ isOpen: false, game: null });
-
-  const isAdminOrMod = user && (user.role === 'ADMIN' || user.role === 'MODERATOR');
 
   const fetchGames = async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await getCategories({ is_genre: false });
+      const data = await getGames();
       setGames(data);
     } catch (err) {
       console.error(err);
@@ -44,44 +37,6 @@ function GamesCatalog() {
         (g.description && g.description.toLowerCase().includes(q))
     );
   }, [games, filterText]);
-
-  const handleOpenCreate = () => {
-    setModalState({ isOpen: true, game: null });
-  };
-
-  const handleOpenEdit = (game) => {
-    setModalState({ isOpen: true, game });
-  };
-
-  const handleCloseModal = () => {
-    setModalState({ isOpen: false, game: null });
-  };
-
-  const handleSavedGame = (savedGame, isEditing) => {
-    if (isEditing) {
-      setGames((prev) => prev.map((g) => (g.id === savedGame.id ? savedGame : g)));
-      setFeedbackMsg(`¡Juego "${savedGame.name}" actualizado con éxito!`);
-    } else {
-      setGames((prev) => [savedGame, ...prev]);
-      setFeedbackMsg(`¡Nuevo juego "${savedGame.name}" agregado al catálogo!`);
-    }
-    setTimeout(() => setFeedbackMsg(''), 4000);
-  };
-
-  const handleDeleteGame = async (game) => {
-    if (!window.confirm(`¿Estás seguro de que deseás eliminar "${game.name}" del catálogo?`)) {
-      return;
-    }
-
-    try {
-      await deleteCategory(game.id);
-      setGames((prev) => prev.filter((g) => g.id !== game.id));
-      setFeedbackMsg(`El juego "${game.name}" fue eliminado.`);
-      setTimeout(() => setFeedbackMsg(''), 3500);
-    } catch (err) {
-      alert(err.message || 'No se pudo eliminar el juego.');
-    }
-  };
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -120,25 +75,6 @@ function GamesCatalog() {
                   Explorá todos los juegos de la comunidad, descubrí temas de debate y participá en sus discusiones.
                 </p>
               </div>
-
-              {/* Botón de Administración: Agregar Juego */}
-              {isAdminOrMod && (
-                <button
-                  type="button"
-                  className="btn btn-retro-auth d-flex align-items-center justify-content-center gap-2"
-                  onClick={handleOpenCreate}
-                  style={{
-                    backgroundColor: '#22c55e',
-                    borderColor: '#15803d',
-                    color: '#ffffff',
-                    padding: '10px 18px',
-                    fontSize: '13px',
-                  }}
-                >
-                  <span>➕</span>
-                  <span>Agregar Nuevo Juego</span>
-                </button>
-              )}
             </div>
 
             {/* Barra de Filtro Rápido */}
@@ -184,253 +120,110 @@ function GamesCatalog() {
             </div>
           </div>
 
-          {/* Notificación Feedback */}
-          {feedbackMsg && (
-            <div
-              className="alert alert-success alert-dismissible fade show mb-4"
-              role="alert"
-              style={{
-                border: '2.5px solid var(--border-dark)',
-                boxShadow: '3px 3px 0px var(--border-dark)',
-                borderRadius: '14px',
-                fontFamily: 'var(--font-pixel)',
-                fontSize: '13px',
-              }}
-            >
-              {feedbackMsg}
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setFeedbackMsg('')}
-              ></button>
-            </div>
-          )}
-
-          {/* Loading */}
-          {loading && (
+          {/* Grilla de Juegos */}
+          {loading ? (
             <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Cargando catálogo...</span>
-              </div>
-              <p
-                className="mt-3 text-muted"
-                style={{ fontFamily: 'var(--font-pixel)', fontSize: '13px' }}
-              >
-                Cargando juegos y portadas...
+              <div className="spinner-border text-secondary" role="status"></div>
+              <p className="mt-3 text-muted small" style={{ fontFamily: 'var(--font-pixel)' }}>
+                Cargando el arsenal...
               </p>
             </div>
-          )}
-
-          {/* Error */}
-          {error && !loading && (
-            <div
-              className="alert alert-danger text-center py-4"
-              role="alert"
-              style={{
-                border: '3px solid var(--border-dark)',
-                borderRadius: '16px',
-                boxShadow: '4px 4px 0px var(--border-dark)',
-              }}
-            >
-              <h4>⚠️ Ups!</h4>
-              <p className="mb-3">{error}</p>
-              <button className="btn btn-outline-dark btn-sm" onClick={fetchGames}>
-                Reintentar
+          ) : error ? (
+            <div className="alert alert-danger" role="alert" style={{ border: '2px solid var(--border-dark)' }}>
+              {error}
+            </div>
+          ) : filteredGames.length === 0 ? (
+            <div className="text-center py-5">
+              <span style={{ fontSize: '48px' }}>👾</span>
+              <p className="mt-3 fw-bold text-muted">No encontramos ningún juego con ese filtro.</p>
+              <button className="btn btn-outline-dark btn-sm" onClick={() => setFilterText('')}>
+                Limpiar filtro
               </button>
             </div>
-          )}
-
-          {/* Grid de Juegos Simétricos ("Cuadritos") */}
-          {!loading && !error && filteredGames.length > 0 && (
-            <div className="games-catalog-grid">
+          ) : (
+            <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4 mt-2">
               {filteredGames.map((game) => (
-                <article key={game.id} className="game-card-grid-item">
-                  {/* Portada con proporción estricta 16:9 y adaptación automática */}
-                  <div className="game-card-img-wrapper">
-                    {game.image_url ? (
-                      <img
-                        src={game.image_url}
-                        alt={game.name}
-                        className="game-card-img"
-                        loading="lazy"
-                        onError={(e) => {
-                          // Si falla la URL, mostramos el fallback elegante
-                          e.target.style.display = 'none';
-                          if (e.target.nextSibling) {
-                            e.target.nextSibling.style.display = 'flex';
-                          }
-                        }}
-                      />
-                    ) : null}
-
-                    {/* Fallback si no hay imagen o dio error */}
-                    <div
-                      className="d-flex flex-column align-items-center justify-content-center text-white w-100 h-100 p-3"
-                      style={{
-                        display: game.image_url ? 'none' : 'flex',
-                        background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
-                      }}
-                    >
-                      <span style={{ fontSize: '36px', marginBottom: '4px' }}>🎮</span>
-                      <span
-                        className="text-center text-truncate w-100 fw-bold"
-                        style={{
-                          fontFamily: 'var(--font-pixel)',
-                          fontSize: '11px',
-                          color: '#f8fafc',
-                        }}
-                      >
-                        {game.name}
-                      </span>
-                    </div>
-
-                    {/* Badge de discusiones superpuesto */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: '8px',
-                        right: '8px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                        color: '#ffffff',
-                        border: '1px solid #ffffff',
-                        borderRadius: '12px',
-                        padding: '2px 8px',
-                        fontSize: '10px',
-                        fontFamily: 'var(--font-pixel)',
-                      }}
-                    >
-                      💬 {game.post_count || 0} posts
-                    </div>
-                  </div>
-
-                  {/* Cuerpo del Cuadro */}
-                  <div className="game-card-body">
-                    <h2 className="game-card-title text-truncate" title={game.name}>
-                      {game.name}
-                    </h2>
-
-                    <p className="game-card-desc">
-                      {game.description || 'Comunidad dedicada a debates, guías, noticias y opiniones de este título.'}
-                    </p>
-
-                    <div className="game-card-footer">
-                      {/* Botón Principal para ir al Feed de este juego */}
-                      <Link
-                        to={`/?category=${game.id}`}
-                        className="btn w-100 text-decoration-none d-flex align-items-center justify-content-center gap-2"
-                        style={{
-                          backgroundColor: '#6366f1',
-                          borderColor: '#4338ca',
-                          color: '#ffffff',
-                          border: '2px solid var(--border-dark)',
-                          borderRadius: '12px',
-                          boxShadow: '2px 2px 0px var(--border-dark)',
-                          fontFamily: 'var(--font-pixel)',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          padding: '8px 12px',
-                          transition: 'all 0.15s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#4f46e5';
-                          e.currentTarget.style.transform = 'translate(-1px, -1px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#6366f1';
-                          e.currentTarget.style.transform = 'none';
-                        }}
-                      >
-                        <span>Ver Discusiones</span>
-                        <span>➔</span>
-                      </Link>
-
-                      {/* Herramientas de Administrador / Moderador */}
-                      {isAdminOrMod && (
-                        <div className="d-flex gap-2 pt-2 border-top mt-1" style={{ borderColor: '#e2e8f0' }}>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-dark flex-grow-1 d-flex align-items-center justify-content-center gap-1"
-                            onClick={() => handleOpenEdit(game)}
-                            style={{
-                              border: '1.5px solid var(--border-dark)',
-                              fontFamily: 'var(--font-pixel)',
-                              fontSize: '11px',
-                              borderRadius: '8px',
-                              backgroundColor: '#fef08a',
-                              color: '#854d0e',
-                            }}
-                          >
-                            <span>✏️</span>
-                            <span>Editar</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-danger flex-grow-1 d-flex align-items-center justify-content-center gap-1"
-                            onClick={() => handleDeleteGame(game)}
-                            style={{
-                              border: '1.5px solid #dc2626',
-                              fontFamily: 'var(--font-pixel)',
-                              fontSize: '11px',
-                              borderRadius: '8px',
-                              backgroundColor: '#fee2e2',
-                              color: '#991b1b',
-                            }}
-                          >
-                            <span>🗑️</span>
-                            <span>Eliminar</span>
-                          </button>
+                <div className="col" key={game.id}>
+                  <div
+                    className="card h-100 game-card-hover"
+                    style={{
+                      border: '2.5px solid var(--border-dark)',
+                      borderRadius: '16px',
+                      boxShadow: '3px 3px 0px var(--border-dark)',
+                      overflow: 'hidden',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      backgroundColor: '#ffffff',
+                    }}
+                  >
+                    <div className="game-card-image-wrapper" style={{ height: '160px', overflow: 'hidden', backgroundColor: '#f3f4f6' }}>
+                      {game.image_url ? (
+                        <img
+                          src={game.image_url}
+                          alt={game.name}
+                          className="w-100 h-100"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-center h-100" style={{ fontSize: '48px', color: '#9ca3af' }}>
+                          🎮
                         </div>
                       )}
                     </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
 
-          {/* Estado Vacío */}
-          {!loading && !error && filteredGames.length === 0 && (
-            <div className="text-center py-5">
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🕹️</div>
-              <h3 style={{ fontFamily: 'var(--font-pixel)', fontSize: '18px' }}>
-                No se encontraron juegos
-              </h3>
-              <p className="text-muted small mb-3">
-                {filterText
-                  ? `Ningún juego coincide con "${filterText}".`
-                  : 'Aún no hay juegos cargados en el catálogo.'}
-              </p>
-              {filterText && (
-                <button
-                  type="button"
-                  className="btn btn-outline-dark btn-sm"
-                  onClick={() => setFilterText('')}
-                >
-                  Limpiar filtro
-                </button>
-              )}
-              {isAdminOrMod && !filterText && (
-                <button
-                  type="button"
-                  className="btn btn-success btn-sm mt-2"
-                  onClick={handleOpenCreate}
-                >
-                  + Agregar el primer juego
-                </button>
-              )}
+                    <div className="card-body d-flex flex-column p-3">
+                      <h5
+                        className="card-title mb-1 text-truncate"
+                        style={{
+                          fontWeight: '800',
+                          fontSize: '16px',
+                          color: '#1f2937',
+                        }}
+                        title={game.name}
+                      >
+                        {game.name}
+                      </h5>
+
+                      <div className="mb-2">
+                        <span
+                          className="badge bg-light text-dark border"
+                          style={{ fontSize: '10px', padding: '3px 6px', fontFamily: 'var(--font-pixel)' }}
+                        >
+                          {game.genres && game.genres.length > 0 ? game.genres[0].name : 'Sin Genero'}
+                        </span>
+                      </div>
+
+                      <p
+                        className="card-text text-muted mb-3"
+                        style={{ fontSize: '12px', lineHeight: '1.4', flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}
+                      >
+                        {game.description
+                          ? game.description.replace(/<[^>]+>/g, '') // strip HTML tags
+                          : 'Sin descripción disponible para este juego.'}
+                      </p>
+
+                      <div className="mt-auto pt-2 border-top">
+                        <Link
+                          to={`/?game=${game.id}`}
+                          className="btn btn-sm w-100 fw-bold"
+                          style={{
+                            backgroundColor: '#fbbf24',
+                            color: '#1a1a1a',
+                            border: '2px solid var(--border-dark)',
+                            borderRadius: '8px',
+                            boxShadow: '1.5px 1.5px 0px var(--border-dark)',
+                          }}
+                        >
+                          Ver Discusiones 💬
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </main>
-
-      {/* Modal para Agregar o Editar Juego */}
-      <GameModal
-        isOpen={modalState.isOpen}
-        onClose={handleCloseModal}
-        onSaved={handleSavedGame}
-        game={modalState.game}
-      />
-
       <Footer />
     </div>
   );

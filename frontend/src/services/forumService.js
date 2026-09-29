@@ -14,11 +14,8 @@ function extractResults(data) {
    CATEGORÍAS / JUEGOS
    ========================================================================== */
 
-export async function getCategories({ is_genre, search, page_size = 100 } = {}) {
+export async function getCategories({ search, page_size = 100 } = {}) {
   const params = new URLSearchParams();
-  if (is_genre !== undefined && is_genre !== null) {
-    params.append('is_genre', is_genre);
-  }
   if (search) {
     params.append('search', search);
   }
@@ -34,11 +31,11 @@ export async function getCategories({ is_genre, search, page_size = 100 } = {}) 
   return extractResults(data);
 }
 
-export async function createCategory({ name, description = '', image_url = '', is_genre = false }) {
+export async function createCategory({ name, description = '', image_url = '' }) {
   const response = await fetchWithAuth(`${API_URL}/categories/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description, image_url, is_genre }),
+    body: JSON.stringify({ name, description, image_url }),
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -47,10 +44,9 @@ export async function createCategory({ name, description = '', image_url = '', i
   return await response.json();
 }
 
-export async function updateCategory(id, { name, description = '', image_url, is_genre }) {
+export async function updateCategory(id, { name, description = '', image_url }) {
   const payload = { name, description };
   if (image_url !== undefined) payload.image_url = image_url;
-  if (is_genre !== undefined) payload.is_genre = is_genre;
 
   const response = await fetchWithAuth(`${API_URL}/categories/${id}/`, {
     method: 'PATCH',
@@ -78,9 +74,10 @@ export async function deleteCategory(id) {
    PUBLICACIONES / POSTS
    ========================================================================== */
 
-export async function getPosts({ category, search, user, page } = {}) {
+export async function getPosts({ category, game, search, user, page } = {}) {
   const params = new URLSearchParams();
   if (category) params.append('category', category);
+  if (game) params.append('game', game);
   if (search) params.append('search', search);
   if (user) params.append('user', user);
   if (page) params.append('page', page);
@@ -110,11 +107,15 @@ export async function getPostById(id) {
   return await response.json();
 }
 
-export async function createPost({ title, content, category_id }) {
+export async function createPost({ title, content, category_id, game_id }) {
+  const payload = { title, content };
+  if (category_id) payload.category_id = category_id;
+  if (game_id) payload.game_id = game_id;
+
   const response = await fetchWithAuth(`${API_URL}/posts/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, content, category_id }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -237,4 +238,64 @@ export async function getUsers() {
   }
   const data = await response.json();
   return extractResults(data);
+}
+
+/* ==========================================================================
+   GAMES & RAWG
+   ========================================================================== */
+
+export async function getGames({ search, page_size = 100 } = {}) {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  if (page_size) params.append('page_size', page_size);
+
+  const url = `${API_URL}/games/${params.toString() ? `?${params.toString()}` : ''}`;
+  const response = await fetchWithAuth(url);
+  if (!response.ok) {
+    throw new Error('Error al cargar los juegos');
+  }
+  const data = await response.json();
+  return extractResults(data);
+}
+
+export async function searchRawg(query) {
+  const response = await fetchWithAuth(`${API_URL}/rawg/search/?q=${encodeURIComponent(query)}`);
+  if (!response.ok) throw new Error('Error al buscar en RAWG');
+  const data = await response.json();
+  return data.results || [];
+}
+
+export async function importRawgGame(slug) {
+  const response = await fetchWithAuth(`${API_URL}/rawg/import/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slug }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al importar de RAWG');
+  }
+  return await response.json();
+}
+
+export async function deleteGame(id) {
+  const response = await fetchWithAuth(`${API_URL}/games/${id}/`, {
+    method: 'DELETE',
+  });
+  if (!response.ok && response.status !== 204) {
+    throw new Error('Error al eliminar el juego');
+  }
+  return true;
+}
+
+export async function updateGame(id, { name, description = '', image_url }) {
+  const payload = { name, description };
+  if (image_url !== undefined) payload.image_url = image_url;
+  const response = await fetchWithAuth(`${API_URL}/games/${id}/`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error('Error al actualizar el juego');
+  return await response.json();
 }
