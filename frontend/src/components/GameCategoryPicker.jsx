@@ -150,7 +150,11 @@ function GameCategoryPicker({
       setIsOpen(false);
       setQuery('');
     } catch (err) {
-      setImportError(err.message || 'Error al importar juego de RAWG.');
+      if (err.message && (err.message.includes('permission') || err.message.includes('permiso') || err.message.includes('403') || err.message.includes('credenciales'))) {
+        setImportError('Solo los administradores o moderadores pueden incorporar títulos nuevos desde RAWG.');
+      } else {
+        setImportError(err.message || 'Error al importar juego de RAWG.');
+      }
     } finally {
       setImportingSlug(null);
     }

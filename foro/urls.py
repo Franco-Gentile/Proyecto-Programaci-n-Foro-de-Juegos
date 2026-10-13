@@ -15,4 +15,17 @@ urlpatterns += [
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    from django.urls import re_path
+    from django.views.static import serve
+
+    def secure_media_serve(request, path, document_root=None, show_indexes=False):
+        response = serve(request, path, document_root, show_indexes)
+        response['X-Content-Type-Options'] = 'nosniff'
+        content_type = response.get('Content-Type', '')
+        if not (content_type.startswith('image/') or content_type.startswith('video/')):
+            response['Content-Disposition'] = 'attachment'
+        return response
+
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', secure_media_serve, {'document_root': settings.MEDIA_ROOT}),
+    ]

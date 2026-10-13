@@ -1,5 +1,5 @@
 from django.db.models import Q
-from rest_framework import status, viewsets, permissions
+from rest_framework import status, viewsets, permissions, throttling
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
@@ -19,6 +19,7 @@ from .serializers import (
 )
 
 from .services.mentions import sync_mentions
+from .services.media_validator import validate_uploaded_file, validate_youtube_url, validate_media_url
 
 
 
@@ -99,12 +100,22 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='change-password')
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], throttle_classes=[throttling.UserRateThrottle], url_path='change-password')
     def change_password(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data['new_password'])
         request.user.save()
+
+        # Invalidar tokens anteriores en la base de datos de tokens vigentes (M4)
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            tokens = OutstandingToken.objects.filter(user=request.user)
+            for t in tokens:
+                BlacklistedToken.objects.get_or_create(token=t)
+        except Exception:
+            pass
+
         return Response({'detail': 'Contraseña actualizada correctamente.'}, status=status.HTTP_200_OK)
 
     def perform_destroy(self, instance):
@@ -118,10 +129,10 @@ class UserViewSet(viewsets.ModelViewSet):
         obj.save()
         return Response({'detail': 'User restored successfully.'})
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], throttle_classes=[throttling.UserRateThrottle])
     def search(self, request):
         query = request.query_params.get('q', '').strip()
-        if not query:
+        if len(query) < 2:
             return Response([])
         users = User.objects.filter(
             is_deleted=False,
@@ -239,9 +250,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
         order = post.media_items.count()
         for f in files:
-            content_type = getattr(f, 'content_type', '')
-            is_video = 'video' in content_type or f.name.lower().endswith(('.mp4', '.webm', '.mov', '.ogg'))
-            media_type = PostMedia.MediaType.VIDEO if is_video else PostMedia.MediaType.IMAGE
+            media_type = validate_uploaded_file(f, is_avatar=False)
             PostMedia.objects.create(
                 post=post,
                 media_type=media_type,
@@ -251,11 +260,12 @@ class PostViewSet(viewsets.ModelViewSet):
             order += 1
 
         youtube_url = self.request.data.get('youtube_url')
-        if youtube_url:
+        if youtube_url and isinstance(youtube_url, str) and youtube_url.strip():
+            valid_yt = validate_youtube_url(youtube_url)
             PostMedia.objects.create(
                 post=post,
                 media_type=PostMedia.MediaType.YOUTUBE,
-                media_url=youtube_url,
+                media_url=valid_yt,
                 order=order
             )
             order += 1
@@ -265,14 +275,15 @@ class PostViewSet(viewsets.ModelViewSet):
             media_urls = [media_urls]
         if media_urls:
             for u in media_urls:
-                if not u or not isinstance(u, str):
+                if not u or not isinstance(u, str) or not u.strip():
                     continue
-                is_yt = 'youtube.com' in u or 'youtu.be' in u
+                valid_u = validate_media_url(u)
+                is_yt = 'youtube.com' in valid_u or 'youtu.be' in valid_u
                 mtype = PostMedia.MediaType.YOUTUBE if is_yt else PostMedia.MediaType.IMAGE
                 PostMedia.objects.create(
                     post=post,
                     media_type=mtype,
-                    media_url=u,
+                    media_url=valid_u,
                     order=order
                 )
                 order += 1

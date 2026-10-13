@@ -73,9 +73,9 @@ class MediaAndMentionsTests(TestCase):
 
     def test_create_post_with_uploaded_file(self):
         dummy_image = SimpleUploadedFile(
-            name='screenshot.jpg',
+            name='screenshot.gif',
             content=b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x05\x04\x04\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b',
-            content_type='image/jpeg'
+            content_type='image/gif'
         )
         response = self.client.post(
             '/api/posts/',

@@ -1,9 +1,15 @@
 import os
+import logging
 import requests
 from django.conf import settings
+from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
+
 
 class RawgService:
     BASE_URL = 'https://api.rawg.io/api'
+    TIMEOUT = (3, 5)  # (connect timeout, read timeout)
 
     @classmethod
     def get_api_key(cls):
@@ -14,16 +20,29 @@ class RawgService:
 
     @classmethod
     def search_games(cls, query):
-        """Busca juegos en RAWG y devuelve una lista resumida."""
+        """Busca juegos en RAWG y devuelve una lista resumida con cache y timeout."""
+        if not query or not query.strip():
+            return []
+
+        cleaned_query = query.strip()
+        cache_key = f"rawg_search_{cleaned_query.lower()[:40]}"
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+
         params = {
             'key': cls.get_api_key(),
-            'search': query,
+            'search': cleaned_query,
             'page_size': 10
         }
-        response = requests.get(f"{cls.BASE_URL}/games", params=params)
-        response.raise_for_status()
-        data = response.json()
-        
+        try:
+            response = requests.get(f"{cls.BASE_URL}/games", params=params, timeout=cls.TIMEOUT)
+            response.raise_for_status()
+            data = response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error("Error al consultar RAWG search: %s", type(e).__name__)
+            raise RuntimeError("Error al comunicarse con el servicio externo de RAWG.")
+
         results = []
         for item in data.get('results', []):
             results.append({
@@ -32,6 +51,9 @@ class RawgService:
                 'slug': item.get('slug'),
                 'image_url': item.get('background_image')
             })
+
+        # Cachear por 10 minutos (600 segundos)
+        cache.set(cache_key, results, 600)
         return results
 
     @classmethod
@@ -40,14 +62,16 @@ class RawgService:
         params = {
             'key': cls.get_api_key()
         }
-        response = requests.get(f"{cls.BASE_URL}/games/{slug_or_id}", params=params)
-        
-        if response.status_code == 404:
-            return None
-            
-        response.raise_for_status()
-        data = response.json()
-        
+        try:
+            response = requests.get(f"{cls.BASE_URL}/games/{slug_or_id}", params=params, timeout=cls.TIMEOUT)
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            data = response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error("Error al consultar RAWG details: %s", type(e).__name__)
+            raise RuntimeError("Error al comunicarse con el servicio externo de RAWG.")
+
         return {
             'id': data.get('id'),
             'name': data.get('name'),

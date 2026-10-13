@@ -143,7 +143,11 @@ function ProfileEditModal({ isOpen, onClose, userProfile, onProfileUpdated }) {
         handleAddFavoriteGame(res.game);
       }
     } catch (err) {
-      setFeedback({ type: 'danger', text: 'Error al importar juego de RAWG.' });
+      if (err.message && (err.message.includes('permission') || err.message.includes('permiso') || err.message.includes('403'))) {
+        setFeedback({ type: 'warning', text: 'Solo los administradores o moderadores pueden incorporar títulos nuevos de RAWG.' });
+      } else {
+        setFeedback({ type: 'danger', text: err.message || 'Error al importar juego de RAWG.' });
+      }
     } finally {
       setImportingRawgSlug(null);
     }

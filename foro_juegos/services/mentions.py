@@ -17,13 +17,17 @@ def extract_mentions(text):
 def sync_mentions(instance, text):
     """
     Finds mentioned users that exist in the database and links them to the instance
-    (e.g. Post or Comment).
+    (e.g. Post or Comment). Case-insensitive matching.
     """
     usernames = extract_mentions(text)
     if not usernames:
         instance.mentioned_users.clear()
         return []
 
-    matched_users = User.objects.filter(username__in=usernames, is_deleted=False)
+    from django.db.models.functions import Lower
+    matched_users = User.objects.annotate(username_lower=Lower('username')).filter(
+        username_lower__in=usernames,
+        is_deleted=False
+    )
     instance.mentioned_users.set(matched_users)
     return list(matched_users)
