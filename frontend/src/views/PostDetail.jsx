@@ -3,7 +3,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ReportModal from '../components/ReportModal';
+import MediaGrid from '../components/MediaGrid';
+import FormattedContent from '../components/FormattedContent';
+import MentionTextarea from '../components/MentionTextarea';
 import { useAuth } from '../context/AuthContext';
+
 import {
   getPostById,
   getComments,
@@ -259,42 +263,46 @@ function PostDetail() {
                 </h1>
 
                 {(post.game || post.category) && (
-                  <div className="mb-3">
-                    <span className="post-tag-badge">
-                      {post.game ? '🎮 ' : '🏷️ '}
-                      {post.game
-                        ? (typeof post.game === 'string' ? post.game : post.game.name)
-                        : (typeof post.category === 'string' ? post.category : post.category?.name)}
-                    </span>
+                  <div className="mb-3 d-flex flex-wrap gap-2">
+                    {post.game && (
+                      <span
+                        className="post-tag-badge"
+                        style={{
+                          backgroundColor: '#fef3c7',
+                          borderColor: '#d97706',
+                          color: '#92400e',
+                        }}
+                      >
+                        🎮 Juego: <strong>{typeof post.game === 'string' ? post.game : post.game.name}</strong>
+                      </span>
+                    )}
+                    {post.category && (
+                      <span
+                        className="post-tag-badge"
+                        style={{
+                          backgroundColor: '#ede9fe',
+                          borderColor: '#7c3aed',
+                          color: '#5b21b6',
+                        }}
+                      >
+                        🏷️ Género: <strong>{typeof post.category === 'string' ? post.category : post.category?.name}</strong>
+                      </span>
+                    )}
                   </div>
                 )}
 
-                {/* Contenido del post */}
-                <div
-                  className="post-detail-content mb-4"
-                  style={{
-                    fontSize: '16px',
-                    lineHeight: '1.7',
-                    color: '#1f2937',
-                    whiteSpace: 'pre-line',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {post.content}
+                {/* Contenido del post con menciones activas */}
+                <div className="post-detail-content mb-4">
+                  <FormattedContent content={post.content} />
                 </div>
 
-                {/* Imagen del post si existe */}
-                {post.images && post.images.length > 0 && (
-                  <div className="post-media-container mb-3">
-                    <img
-                      src={post.images[0].image_url}
-                      alt={post.title}
-                      className="post-media-image"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
+                {/* Cuadrícula Multimedia Estilo X (1-4 fotos o video / YouTube) */}
+                <MediaGrid
+                  mediaItems={post.media_items || []}
+                  imageUrl={post.images && post.images.length > 0 ? post.images[0].image_url : null}
+                />
               </article>
+
 
               {/* Sección de Comentarios */}
               <section
@@ -326,10 +334,10 @@ function PostDetail() {
                       <div className="alert alert-danger py-2 small mb-2">{commentError}</div>
                     )}
                     <div className="mb-2">
-                      <textarea
+                      <MentionTextarea
                         className="form-control"
-                        rows="3"
-                        placeholder={`Escribí una respuesta como @${user.username}...`}
+                        rows={3}
+                        placeholder={`Escribí una respuesta como @${user.username}... (podés usar @ para mencionar)`}
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         required
@@ -338,7 +346,8 @@ function PostDetail() {
                           borderRadius: '10px',
                           boxShadow: '2px 2px 0px var(--border-dark)',
                         }}
-                      ></textarea>
+                      />
+
                     </div>
                     <div className="d-flex justify-content-end">
                       <button
@@ -470,19 +479,9 @@ function PostDetail() {
                             </div>
                           </div>
 
-                          <p
-                            className="mb-0"
-                            style={{
-                              fontSize: '14px',
-                              lineHeight: '1.5',
-                              color: '#334155',
-                              whiteSpace: 'pre-line',
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            {comment.content}
-                          </p>
+                          <FormattedContent content={comment.content} />
                         </div>
+
                       );
                     })}
                   </div>

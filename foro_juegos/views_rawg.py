@@ -1,19 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, permissions
 from django.utils.text import slugify
 
 from .models import Game, Category
-from .views import IsAdminOrModerator
 from .services.rawg_service import RawgService
 
 
 class RawgSearchView(APIView):
     """
     Busca juegos en la API de RAWG.
-    Solo para uso de Administradores/Moderadores.
+    Disponible para usuarios autenticados para postear o consultar.
     """
-    permission_classes = [IsAdminOrModerator]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         query = request.query_params.get('q', '')
@@ -31,9 +30,10 @@ class RawgImportView(APIView):
     """
     Importa un juego de la API de RAWG y lo guarda en la base de datos local.
     También importa y enlaza sus géneros.
-    Solo para uso de Administradores/Moderadores.
+    Disponible para usuarios autenticados al postear.
     """
-    permission_classes = [IsAdminOrModerator]
+    permission_classes = [permissions.IsAuthenticated]
+
 
     def post(self, request):
         slug = request.data.get('slug')

@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import MediaGrid from './MediaGrid';
+import FormattedContent from './FormattedContent';
 
 function getRoleBadge(role) {
   if (role === 'ADMIN') {
@@ -44,14 +46,21 @@ function PostCard({
   userRole = 'USER',
   avatar = '🎮',
   timeAgo = 'Hace un momento',
-  tag = 'General',
+  tag = '',
+  game = null,
+  category = null,
   imageUrl,
+  mediaItems = [],
   commentCount = null,
   isGame = false,
   onReport,
   onDelete,
   canDelete = false,
 }) {
+  const gameName = game ? (typeof game === 'string' ? game : game.name) : (isGame && tag ? tag : null);
+  const categoryName = category ? (typeof category === 'string' ? category : category.name) : (!isGame && tag ? tag : null);
+  const hasTags = Boolean(gameName || categoryName);
+
   return (
     <article className="post-card-item">
       {/* Cabecera del post: Autor + Avatar + Rol + Fecha */}
@@ -94,56 +103,59 @@ function PostCard({
         </div>
       </div>
 
-      {/* Título y Contenido */}
-      {id ? (
-        <Link
-          to={`/posts/${id}`}
-          className="text-decoration-none"
-          style={{ color: 'inherit' }}
-        >
-          {title && <h3 className="post-content-title mb-2">{title}</h3>}
-          <p
-            className="text-dark mb-3"
-            style={{
-              fontSize: '15px',
-              lineHeight: '1.5',
-              whiteSpace: 'pre-line',
-              wordBreak: 'break-word',
-            }}
-          >
-            {content}
-          </p>
-        </Link>
-      ) : (
-        <>
-          {title && <h3 className="post-content-title mb-2">{title}</h3>}
-          <p
-            className="text-dark mb-3"
-            style={{
-              fontSize: '15px',
-              lineHeight: '1.5',
-              whiteSpace: 'pre-line',
-              wordBreak: 'break-word',
-            }}
-          >
-            {content}
-          </p>
-        </>
+      {/* Título */}
+      {title && (
+        <div className="mb-2">
+          {id ? (
+            <Link
+              to={`/posts/${id}`}
+              className="text-decoration-none"
+              style={{ color: 'inherit' }}
+            >
+              <h3 className="post-content-title mb-0">{title}</h3>
+            </Link>
+          ) : (
+            <h3 className="post-content-title mb-0">{title}</h3>
+          )}
+        </div>
       )}
 
+      {/* Contenido con menciones activas */}
+      <div className="mb-3">
+        <FormattedContent content={content} />
+      </div>
+
+      {/* Cuadrícula Multimedia Estilo X (1-4 fotos o video / YouTube) */}
+      <MediaGrid mediaItems={mediaItems} imageUrl={imageUrl} />
+
       {/* Tag de Categoría / Juego */}
-      {tag && (
-        <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-          <div
-            className="post-tag-badge mb-0"
-            style={{
-              backgroundColor: isGame ? '#fef3c7' : '#ede9fe',
-              borderColor: isGame ? '#d97706' : '#7c3aed',
-              color: isGame ? '#92400e' : '#5b21b6',
-            }}
-          >
-            {isGame ? '🎮 Juego: ' : '🏷️ Género: '}
-            <span className="fw-bold">{tag}</span>
+      {hasTags && (
+        <div className="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+          <div className="d-flex flex-wrap gap-2 align-items-center">
+            {gameName && (
+              <div
+                className="post-tag-badge mb-0"
+                style={{
+                  backgroundColor: '#fef3c7',
+                  borderColor: '#d97706',
+                  color: '#92400e',
+                }}
+              >
+                🎮 Juego: <span className="fw-bold">{gameName}</span>
+              </div>
+            )}
+            {categoryName && (
+              <div
+                className="post-tag-badge mb-0"
+                style={{
+                  backgroundColor: '#ede9fe',
+                  borderColor: '#7c3aed',
+                  color: '#5b21b6',
+                }}
+              >
+                🏷️ Género: <span className="fw-bold">{categoryName}</span>
+              </div>
+            )}
           </div>
           {id && (
             <Link
@@ -161,17 +173,6 @@ function PostCard({
         </div>
       )}
 
-      {/* Contenedor de medios si tiene imagen */}
-      {imageUrl && (
-        <div className="post-media-container">
-          <img
-            src={imageUrl}
-            alt={title || content}
-            className="post-media-image"
-            loading="lazy"
-          />
-        </div>
-      )}
     </article>
   );
 }

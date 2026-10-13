@@ -313,8 +313,9 @@ function Home() {
                       userRole={post.user_role || (typeof post.user === 'object' ? post.user.role : 'USER')}
                       avatar="🎮"
                       timeAgo={getTimeAgo(post.created_at)}
-                      tag={post.game ? (typeof post.game === 'string' ? post.game : post.game.name) : (typeof post.category === 'string' ? post.category : (post.category?.name || 'General'))}
-                      isGame={!!post.game}
+                      game={post.game}
+                      category={post.category}
+                      mediaItems={post.media_items || []}
                       imageUrl={post.images && post.images.length > 0 ? post.images[0].image_url : null}
                       onReport={handleOpenReport}
                       onDelete={handleDeletePost}

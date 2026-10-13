@@ -4,4 +4,5 @@ from .game import Game
 from .post import Post
 from .comment import Comment
 from .image import Image
-from .report import Report
+from .media import PostMedia
+from .report import Report

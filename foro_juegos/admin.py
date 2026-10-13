@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Category, Game, Post, Comment, Image, Report
+from .models import User, Category, Game, Post, Comment, Image, PostMedia, Report
+
 
 
 @admin.register(User)
@@ -49,6 +50,14 @@ class CommentAdmin(admin.ModelAdmin):
 class ImageAdmin(admin.ModelAdmin):
     list_display = ('post', 'image_url', 'created_at')
     search_fields = ('post__title',)
+
+
+@admin.register(PostMedia)
+class PostMediaAdmin(admin.ModelAdmin):
+    list_display = ('post', 'media_type', 'file', 'media_url', 'order', 'created_at')
+    list_filter = ('media_type', 'created_at')
+    search_fields = ('post__title',)
+
 
 
 @admin.register(Report)

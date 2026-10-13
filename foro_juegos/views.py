@@ -6,15 +6,20 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Category, Game, Post, Comment, Image, Report
+from .models import User, Category, Game, Post, Comment, Image, PostMedia, Report
 from .serializers import (
     UserSerializer, UserCreateSerializer,
     CategorySerializer, GameSerializer,
     PostSerializer, PostListSerializer,
     CommentSerializer,
     ImageSerializer,
+    PostMediaSerializer,
+    ChangePasswordSerializer,
     ReportSerializer
 )
+
+from .services.mentions import sync_mentions
+
 
 
 class StandardPagination(PageNumberPagination):
@@ -84,10 +89,23 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserCreateSerializer
         return UserSerializer
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['get', 'patch', 'put'], permission_classes=[permissions.IsAuthenticated])
     def me(self, request):
+        if request.method in ['PATCH', 'PUT']:
+            serializer = self.get_serializer(request.user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='change-password')
+    def change_password(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        request.user.set_password(serializer.validated_data['new_password'])
+        request.user.save()
+        return Response({'detail': 'Contraseña actualizada correctamente.'}, status=status.HTTP_200_OK)
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
@@ -99,6 +117,20 @@ class UserViewSet(viewsets.ModelViewSet):
         obj.is_deleted = False
         obj.save()
         return Response({'detail': 'User restored successfully.'})
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def search(self, request):
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response([])
+        users = User.objects.filter(
+            is_deleted=False,
+            username__icontains=query
+        ).exclude(pk=request.user.pk)[:10]
+        data = [{'id': u.id, 'username': u.username, 'role': u.role, 'avatar': u.avatar} for u in users]
+        return Response(data)
+
+
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -141,11 +173,12 @@ class PostViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        qs = Post.objects.filter(is_deleted=False)
+        qs = Post.objects.filter(is_deleted=False).prefetch_related('media_items', 'mentioned_users')
         category = self.request.query_params.get('category')
         game = self.request.query_params.get('game')
         user_param = self.request.query_params.get('user')
         search = self.request.query_params.get('search')
+        mentioned = self.request.query_params.get('mentioned')
         if category:
             if str(category).isdigit():
                 qs = qs.filter(category_id=category)
@@ -161,6 +194,11 @@ class PostViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(user_id=user_param)
             else:
                 qs = qs.filter(user__username__iexact=user_param)
+        if mentioned:
+            if str(mentioned).isdigit():
+                qs = qs.filter(mentioned_users__id=mentioned)
+            else:
+                qs = qs.filter(mentioned_users__username__iexact=mentioned)
         if search:
             qs = qs.filter(
                 Q(title__icontains=search)
@@ -178,7 +216,66 @@ class PostViewSet(viewsets.ModelViewSet):
         return PostSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        post = serializer.save(user=self.request.user)
+        sync_mentions(post, post.content)
+        self._handle_media_attachments(post)
+
+    def perform_update(self, serializer):
+        post = serializer.save()
+        sync_mentions(post, post.content)
+        self._handle_media_attachments(post)
+
+    def _handle_media_attachments(self, post):
+        files = (
+            self.request.FILES.getlist('media_files')
+            or self.request.FILES.getlist('images')
+            or self.request.FILES.getlist('files')
+        )
+        if not files:
+            if 'image' in self.request.FILES:
+                files = [self.request.FILES['image']]
+            elif 'video' in self.request.FILES:
+                files = [self.request.FILES['video']]
+
+        order = post.media_items.count()
+        for f in files:
+            content_type = getattr(f, 'content_type', '')
+            is_video = 'video' in content_type or f.name.lower().endswith(('.mp4', '.webm', '.mov', '.ogg'))
+            media_type = PostMedia.MediaType.VIDEO if is_video else PostMedia.MediaType.IMAGE
+            PostMedia.objects.create(
+                post=post,
+                media_type=media_type,
+                file=f,
+                order=order
+            )
+            order += 1
+
+        youtube_url = self.request.data.get('youtube_url')
+        if youtube_url:
+            PostMedia.objects.create(
+                post=post,
+                media_type=PostMedia.MediaType.YOUTUBE,
+                media_url=youtube_url,
+                order=order
+            )
+            order += 1
+
+        media_urls = self.request.data.getlist('media_urls') if hasattr(self.request.data, 'getlist') else self.request.data.get('media_urls')
+        if isinstance(media_urls, str):
+            media_urls = [media_urls]
+        if media_urls:
+            for u in media_urls:
+                if not u or not isinstance(u, str):
+                    continue
+                is_yt = 'youtube.com' in u or 'youtu.be' in u
+                mtype = PostMedia.MediaType.YOUTUBE if is_yt else PostMedia.MediaType.IMAGE
+                PostMedia.objects.create(
+                    post=post,
+                    media_type=mtype,
+                    media_url=u,
+                    order=order
+                )
+                order += 1
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
@@ -199,14 +296,19 @@ class CommentViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        qs = Comment.objects.filter(is_deleted=False)
+        qs = Comment.objects.filter(is_deleted=False).prefetch_related('mentioned_users')
         post_id = self.request.query_params.get('post')
         if post_id:
             qs = qs.filter(post_id=post_id)
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        comment = serializer.save(user=self.request.user)
+        sync_mentions(comment, comment.content)
+
+    def perform_update(self, serializer):
+        comment = serializer.save()
+        sync_mentions(comment, comment.content)
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
@@ -218,6 +320,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         obj.is_deleted = False
         obj.save()
         return Response({'detail': 'Comment restored successfully.'})
+
 
 
 class ImageViewSet(viewsets.ModelViewSet):
