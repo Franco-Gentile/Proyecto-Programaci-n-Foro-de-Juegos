@@ -41,7 +41,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, login, logout, register }), [user, login, logout, register]);
+  const updateUser = useCallback((updatedData) => {
+    setUser((prev) => {
+      const merged = { ...(prev || {}), ...updatedData };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(merged));
+      return merged;
+    });
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, login, logout, register, updateUser }),
+    [user, login, logout, register, updateUser]
+  );
 
   return (
     <AuthContext.Provider value={value}>

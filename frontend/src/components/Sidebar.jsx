@@ -43,8 +43,7 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
       try {
         setLoading(true);
         setError('');
-        // En el sidebar del foro principal mostramos exclusivamente los Géneros
-        const data = await getCategories({ is_genre: true });
+        const data = await getCategories();
         if (isMounted) {
           setCategories(data);
         }
@@ -83,7 +82,7 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
   };
 
   return (
-    <aside className="sidebar-custom-card" aria-label="Sección Comunidades de Juegos">
+    <aside className="sidebar-custom-card" aria-label="Sección Comunidades de Categorías">
       {/* Cabecera Sidebar */}
       <div className="d-flex align-items-center justify-content-between mb-2">
         <h2 className="sidebar-custom-title mb-0">
@@ -102,7 +101,7 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
             }}
             title="Quitar filtro de género"
           >
-            ✕ Ver todos
+            ❌ Ver todos
           </button>
         )}
       </div>
@@ -234,7 +233,7 @@ function Sidebar({ selectedCategory = null, onSelectCategory }) {
           }}
         >
           <span>🎮 Catálogo de Juegos</span>
-          <span style={{ fontSize: '14px' }}>➔</span>
+          <span style={{ fontSize: '14px' }}>🚀</span>
         </Link>
       </div>
     </aside>

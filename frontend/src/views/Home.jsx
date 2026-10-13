@@ -37,6 +37,7 @@ function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
   const categoryParam = searchParams.get('category') || null;
+  const gameParam = searchParams.get('game') || null;
 
   const { user } = useAuth();
 
@@ -46,6 +47,7 @@ function Home() {
       setError('');
       const data = await getPosts({
         category: categoryParam,
+        game: gameParam,
         search: searchQuery,
       });
 
@@ -56,7 +58,7 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  }, [categoryParam, searchQuery]);
+  }, [categoryParam, gameParam, searchQuery]);
 
   useEffect(() => {
     fetchPostList();
@@ -89,10 +91,22 @@ function Home() {
     }
   };
 
+  const handleSelectGame = (gameId) => {
+    const next = new URLSearchParams(searchParams);
+    if (gameId) {
+      next.set('game', gameId);
+      next.delete('category'); // clear category if selecting game
+    } else {
+      next.delete('game');
+    }
+    setSearchParams(next);
+  };
+
   const handleSelectCategory = (catId) => {
     const next = new URLSearchParams(searchParams);
     if (catId) {
       next.set('category', catId);
+      next.delete('game'); // clear game if selecting category
     } else {
       next.delete('category');
     }
@@ -167,15 +181,17 @@ function Home() {
                   >
                     {searchQuery
                       ? `🔍 Búsqueda: "${searchQuery}"`
+                      : gameParam
+                      ? posts.length > 0
+                        ? `🎮 Discusiones de: ${posts[0].game}`
+                        : '🎮 Discusiones del Juego'
                       : categoryParam
-                      ? posts.length > 0 && posts[0].category_is_genre === false
-                        ? `🎮 Discusiones de: ${posts[0].category}`
-                        : posts.length > 0
+                      ? posts.length > 0
                         ? `🏷️ Género: ${posts[0].category}`
-                        : '🎮 Feed Filtrado'
+                        : '🏷️ Discusiones del Género'
                       : '🔥 Todas las Publicaciones'}
                   </h1>
-                  {(categoryParam || searchQuery) && (
+                  {(categoryParam || gameParam || searchQuery) && (
                     <button
                       type="button"
                       className="btn btn-link text-danger p-0 small fw-bold mt-1"
@@ -297,8 +313,9 @@ function Home() {
                       userRole={post.user_role || (typeof post.user === 'object' ? post.user.role : 'USER')}
                       avatar="🎮"
                       timeAgo={getTimeAgo(post.created_at)}
-                      tag={typeof post.category === 'string' ? post.category : (post.category?.name || 'General')}
-                      isGame={post.category_is_genre === false}
+                      game={post.game}
+                      category={post.category}
+                      mediaItems={post.media_items || []}
                       imageUrl={post.images && post.images.length > 0 ? post.images[0].image_url : null}
                       onReport={handleOpenReport}
                       onDelete={handleDeletePost}

@@ -13,6 +13,12 @@ import {
   createReport,
   updateReportStatus,
   getUsers,
+  getMyProfile,
+  updateProfile,
+  changePassword,
+  getGames,
+  searchRawg,
+  importRawgGame,
 } from './forumService';
 
 // Mock localStorage
@@ -177,5 +183,81 @@ describe('forumService - Reports & Users', () => {
 
     const result = await getUsers();
     expect(result).toEqual(mockUsers);
+  });
+});
+
+describe('forumService - Profile & Security', () => {
+  it('obtiene el perfil propio con getMyProfile', async () => {
+    const mockProfile = { id: 1, username: 'testgamer', bio: 'Retro fan', avatar: '👾' };
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockProfile,
+    });
+
+    const result = await getMyProfile();
+    expect(result).toEqual(mockProfile);
+  });
+
+  it('actualiza el perfil con updateProfile', async () => {
+    const updatedData = { bio: 'New bio', avatar: '🎮', banner_color: '#831843' };
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 1, ...updatedData }),
+    });
+
+    const result = await updateProfile(updatedData);
+    expect(result.bio).toBe('New bio');
+    expect(result.avatar).toBe('🎮');
+  });
+
+  it('cambia la contraseña con changePassword', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ detail: 'Contraseña actualizada correctamente.' }),
+    });
+
+    const result = await changePassword({
+      current_password: 'oldPassword123',
+      new_password: 'newPassword123',
+    });
+    expect(result.detail).toBe('Contraseña actualizada correctamente.');
+  });
+});
+
+describe('forumService - Games & RAWG', () => {
+  it('obtiene lista de juegos locales', async () => {
+    const mockGames = [{ id: 1, name: 'Elden Ring', slug: 'elden-ring' }];
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ results: mockGames }),
+    });
+
+    const result = await getGames();
+    expect(result).toEqual(mockGames);
+  });
+
+  it('busca juegos en RAWG', async () => {
+    const mockRawg = [{ id: 10, name: 'Dark Souls', slug: 'dark-souls' }];
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ results: mockRawg }),
+    });
+
+    const result = await searchRawg('Dark');
+    expect(result).toEqual(mockRawg);
+  });
+
+  it('importa un juego de RAWG', async () => {
+    const mockResponse = {
+      message: 'Juego importado exitosamente',
+      game: { id: 25, name: 'Dark Souls', slug: 'dark-souls' },
+    };
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    const result = await importRawgGame('dark-souls');
+    expect(result.game.name).toBe('Dark Souls');
   });
 });
