@@ -1,5 +1,8 @@
-// Utilizamos ruta relativa para pasar a través del proxy de Vite (M5)
-export const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Configuración de la URL de la API (soporta proxy local y fallback de producción en Render)
+const rawEnvUrl = import.meta.env.VITE_API_URL;
+export const API_URL = (rawEnvUrl && !rawEnvUrl.includes('<') && !rawEnvUrl.includes('tu-url'))
+  ? rawEnvUrl
+  : (import.meta.env.DEV ? '/api' : 'https://proyecto-programaci-n-foro-de-juegos.onrender.com/api');
 
 export const SESSION_KEY = 'user';
 export const TOKEN_KEY = 'access_token';
