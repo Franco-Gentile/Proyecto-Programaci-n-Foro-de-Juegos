@@ -26,3 +26,5 @@ services:
         value: "https://*.onrender.com,https://*.vercel.app"
       - key: CLOUDINARY_URL
         value: "cloudinary://344365379116465:Z2vPcxfoVhrhT3oGCJJwlaFtLpw@orvlu9xb"
+      - key: API_RAWG_KEY
+        value: "39cdc0c7c0b64af59a028429c05a935d"
