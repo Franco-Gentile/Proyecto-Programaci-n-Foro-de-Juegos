@@ -1,18 +1,18 @@
 # Cómo se subió la aplicación
 
 ## Servicios utilizados
-- **API y Base de Datos:** Railway (con PostgreSQL administrado) *(Alternativa: Render)*
+- **API y Base de Datos:** Render (con PostgreSQL administrado)
 - **Frontend:** Vercel
 - **Media (Imágenes y Multimedia):** Cloudinary (Sí)
 
 ---
 
 ## URLs Públicas del Proyecto
-- **URL de la API:** `PENDIENTE_COMPLETAR` (ej. `https://foro-juegos-api-production.up.railway.app`)
-- **Documentación Swagger / OpenAPI:** `PENDIENTE_COMPLETAR/api/docs/`
-- **Health Check de la API:** `PENDIENTE_COMPLETAR/api/health/`
-- **URL del Frontend:** `PENDIENTE_COMPLETAR` (ej. `https://foro-juegos.vercel.app`)
-- **Cloudinary Media URL:** `PENDIENTE_COMPLETAR` (ej. `https://res.cloudinary.com/<tu_cloud_name>/image/upload/...`)
+- **URL de la API:** https://proyecto-programaci-n-foro-de-juegos.onrender.com
+- **Documentación Swagger / OpenAPI:** https://proyecto-programaci-n-foro-de-juegos.onrender.com/api/docs/
+- **Health Check de la API:** https://proyecto-programaci-n-foro-de-juegos.onrender.com/api/health/
+- **URL del Frontend:** https://proyecto-programaci-n-foro-de-juegos-mgqq91f1y-franco-gentile.vercel.app
+- **Cloudinary Media URL Base:** `https://res.cloudinary.com/orvlu9xb/image/upload/`
 
 ---
 
