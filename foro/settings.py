@@ -47,14 +47,13 @@ except ImportError:
     HAS_CLOUDINARY = False
 
 INSTALLED_APPS = [
-    *(['cloudinary_storage'] if HAS_CLOUDINARY else []),
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    *(['cloudinary'] if HAS_CLOUDINARY else []),
+    *(['cloudinary_storage', 'cloudinary'] if HAS_CLOUDINARY else []),
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
@@ -220,17 +219,32 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+import re
+
 CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
+if CLOUDINARY_URL:
+    match = re.match(r'cloudinary:\/\/([^:]+):([^@]+)@(.+)', CLOUDINARY_URL)
+    if match:
+        _api_key, _api_secret, _cloud_name = match.groups()
+        CLOUDINARY_STORAGE = {
+            'CLOUD_NAME': _cloud_name,
+            'API_KEY': _api_key,
+            'API_SECRET': _api_secret,
+        }
+
+STATICFILES_STORAGE_BACKEND = (
+    "whitenoise.storage.CompressedStaticFilesStorage"
+    if HAS_WHITENOISE
+    else "django.contrib.staticfiles.storage.StaticFilesStorage"
+)
+
 if CLOUDINARY_URL and HAS_CLOUDINARY:
-    CLOUDINARY_STORAGE = {
-        'CLOUDINARY_URL': CLOUDINARY_URL,
-    }
     STORAGES = {
         "default": {
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+            "BACKEND": STATICFILES_STORAGE_BACKEND,
         },
     }
 else:
@@ -239,7 +253,7 @@ else:
             "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+            "BACKEND": STATICFILES_STORAGE_BACKEND,
         },
     }
 
