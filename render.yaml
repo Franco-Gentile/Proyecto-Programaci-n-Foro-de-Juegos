@@ -25,4 +25,4 @@ services:
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.onrender.com,https://*.vercel.app"
       - key: CLOUDINARY_URL
-        sync: false
+        value: "cloudinary://344365379116465:Z2vPcxfoVhrhT3oGCJJwlaFtLpw@orvlu9xb"
