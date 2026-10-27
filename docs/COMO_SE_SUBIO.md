@@ -18,14 +18,37 @@
 
 ## Método de deploy API
 - **Método:** Git (Deploy directo desde repositorio GitHub)
-- **Rama:** `feature/separate-games` o `main`
+- **Rama:** `tp10`
 
 ---
 
-## Pasos para la API (Railway)
+## Pasos para la API y Base de Datos (Render)
+1. Iniciar sesión en [Render](https://render.com) utilizando la cuenta de GitHub.
+2. Hacer clic en **+ New** -> **Blueprint**.
+3. Conectar el repositorio `Proyecto-Programaci-n-Foro-de-Juegos` y seleccionar la rama `tp10`.
+4. Render detecta automáticamente el archivo `render.yaml` y configura:
+   - Base de datos PostgreSQL gestionada (`forodb`).
+   - Servicio Web (`foro-juegos-api`) con Python, Gunicorn y WhiteNoise.
+   - Comandos automáticos de build y start:
+     * Build: `pip install -r requirements.txt && python manage.py collectstatic --noinput`
+     * Start: `python manage.py migrate --noinput && gunicorn foro.wsgi:application`
+5. En las variables de entorno del servicio web, agregar `CLOUDINARY_URL` con el enlace obtenido de Cloudinary.
+6. Hacer clic en **Apply**. Render compilará, migrará la base de datos y generará la URL pública (ej. `https://foro-juegos-api.onrender.com`).
+7. Para crear el superusuario inicial:
+   - En el dashboard del Web Service, ir a **Shell** y ejecutar:
+     ```bash
+     python manage.py createsuperuser
+     ```
+8. Verificar que los endpoints respondan correctamente:
+   - `GET /api/health/` -> `{"status": "ok", "service": "api"}`
+   - `GET /api/docs/` -> Swagger UI interactivo cargando estilos con WhiteNoise.
+
+---
+
+## Pasos para la API (Railway - Alternativa)
 1. Iniciar sesión en [Railway](https://railway.com) utilizando la cuenta de GitHub.
 2. Crear un nuevo proyecto (`+ New Project`) y seleccionar **Provision PostgreSQL** para instanciar la base de datos de producción.
-3. Dentro del mismo proyecto, presionar **+ Create** -> **GitHub Repo** y seleccionar el repositorio `Proyecto-Programaci-n-Foro-de-Juegos`.
+3. Dentro del mismo proyecto, presionar **+ Create** -> **GitHub Repo**, seleccionar el repositorio `Proyecto-Programaci-n-Foro-de-Juegos` y elegir la rama `tp10`.
 4. En la configuración del servicio del Backend en Railway:
    - Configurar **Variables de entorno** (Variables tab):
      * `DATABASE_URL`: Vinculada con `${{Postgres.DATABASE_URL}}` (Railway la autoinyecta).
