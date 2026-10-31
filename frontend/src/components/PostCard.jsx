@@ -78,13 +78,13 @@ function PostCard({
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [postLikesCount, setPostLikesCount] = useState(likesCount || 0);
+  const [postLikesCount, setPostLikesCount] = useState(Number(likesCount) || 0);
   const [postIsLiked, setPostIsLiked] = useState(Boolean(isLiked));
   const [likingPost, setLikingPost] = useState(false);
   const [previewComments, setPreviewComments] = useState(() => sortCommentsList(topComments || []));
 
   useEffect(() => {
-    setPostLikesCount(likesCount || 0);
+    setPostLikesCount(Number(likesCount) || 0);
     setPostIsLiked(Boolean(isLiked));
   }, [likesCount, isLiked]);
 
@@ -120,10 +120,15 @@ function PostCard({
     try {
       const res = await togglePostLike(id);
       setPostIsLiked(Boolean(res.is_liked));
-      setPostLikesCount(res.likes_count ?? 0);
+      setPostLikesCount(Number(res.likes_count) || 0);
     } catch (err) {
       setPostIsLiked(prevLiked);
       setPostLikesCount(prevCount);
+      if (!localStorage.getItem('access_token')) {
+        navigate('/login');
+      } else {
+        alert(err.message || 'No se pudo registrar el Me gusta.');
+      }
     } finally {
       setLikingPost(false);
     }
@@ -140,13 +145,17 @@ function PostCard({
         sortCommentsList(
           prev.map((c) =>
             c.id === commentId
-              ? { ...c, is_liked: Boolean(res.is_liked), likes_count: res.likes_count ?? 0 }
+              ? { ...c, is_liked: Boolean(res.is_liked), likes_count: Number(res.likes_count) || 0 }
               : c
           )
         )
       );
     } catch (err) {
-      console.error(err);
+      if (!localStorage.getItem('access_token')) {
+        navigate('/login');
+      } else {
+        alert(err.message || 'No se pudo registrar el Me gusta en el comentario.');
+      }
     }
   };
 
@@ -164,7 +173,10 @@ function PostCard({
     }
   };
 
-  const totalDiscussions = commentCount !== null && commentCount !== undefined ? commentCount : previewComments.length;
+  const totalDiscussions =
+    commentCount !== null && commentCount !== undefined && Number(commentCount) >= previewComments.length
+      ? Number(commentCount)
+      : previewComments.length;
   const displayedComments = previewComments.slice(0, 2);
 
   return (
@@ -198,12 +210,18 @@ function PostCard({
           {onReport && (
             <button
               type="button"
-              className="btn btn-sm btn-link text-muted p-0"
-              title="Reportar publicación"
-              onClick={() => onReport(id, title || content)}
-              style={{ fontSize: '13px', textDecoration: 'none' }}
+              className="btn btn-sm btn-outline-danger p-0 px-2"
+              title="Denunciar publicación"
+              onClick={() => onReport(id, title || content, null)}
+              style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-pixel)',
+                border: '1.5px solid #fca5a5',
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+              }}
             >
-              🚨
+              🚨 Denunciar
             </button>
           )}
         </div>
@@ -277,7 +295,7 @@ function PostCard({
                 color: postIsLiked ? '#dc2626' : '#334155',
                 border: `1.5px solid ${postIsLiked ? '#ef4444' : 'var(--border-dark)'}`,
                 borderRadius: '20px',
-                padding: '3px 10px',
+                padding: '4px 12px',
                 fontFamily: 'var(--font-pixel)',
                 fontSize: '10px',
                 boxShadow: '1.5px 1.5px 0px var(--border-dark)',
@@ -302,8 +320,8 @@ function PostCard({
         )}
       </div>
 
-      {/* Vista previa de hasta 2 comentarios (fijados por el creador o con más likes) */}
-      {displayedComments.length > 0 && (
+      {/* Sección inferior de comentarios (2 comentarios fijados o con más likes) */}
+      {id && (
         <div
           className="mt-3 pt-2 border-top"
           style={{
@@ -317,110 +335,133 @@ function PostCard({
             className="d-flex align-items-center justify-content-between mb-2"
             style={{ fontSize: '10px', fontFamily: 'var(--font-pixel)', color: '#475569' }}
           >
-            <span>💬 Comentarios destacados</span>
-            {totalDiscussions > 2 && id && (
-              <Link to={`/posts/${id}`} className="text-decoration-none" style={{ color: '#4f46e5' }}>
-                Ver los {totalDiscussions} comentarios →
-              </Link>
-            )}
+            <span>
+              💬 {totalDiscussions} {totalDiscussions === 1 ? 'Comentario' : 'Comentarios'}
+            </span>
+            <Link to={`/posts/${id}`} className="text-decoration-none fw-bold" style={{ color: '#4f46e5' }}>
+              {totalDiscussions > 2
+                ? `Ver los ${totalDiscussions} comentarios →`
+                : 'Responder / Ver hilo →'}
+            </Link>
           </div>
 
-          <div className="d-flex flex-column gap-2">
-            {displayedComments.map((comment) => {
-              const cAuthor =
-                typeof comment.user === 'string'
-                  ? comment.user
-                  : comment.user?.username || 'Usuario';
-              const cRole = comment.user?.role || 'USER';
+          {displayedComments.length === 0 ? (
+            <div className="small text-muted py-1 d-flex align-items-center justify-content-between">
+              <span>💭 Aún no hay comentarios en este post.</span>
+              <Link to={`/posts/${id}`} className="small fw-bold text-decoration-none">
+                ¡Sé el primero en comentar! →
+              </Link>
+            </div>
+          ) : (
+            <div className="d-flex flex-column gap-2">
+              {displayedComments.map((comment) => {
+                const cAuthor =
+                  typeof comment.user === 'string'
+                    ? comment.user
+                    : comment.user?.username || 'Usuario';
+                const cRole = comment.user?.role || 'USER';
 
-              return (
-                <div
-                  key={comment.id}
-                  className="p-2"
-                  style={{
-                    backgroundColor: comment.is_pinned ? '#fffbeb' : '#ffffff',
-                    border: comment.is_pinned ? '1.5px solid #f59e0b' : '1.5px solid #e2e8f0',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                  }}
-                >
-                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
-                    <div className="d-flex align-items-center gap-2 flex-wrap">
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: '#e2e8f0',
-                          color: '#0f172a',
-                          fontFamily: 'var(--font-pixel)',
-                          fontSize: '9px',
-                        }}
-                      >
-                        @{cAuthor}
-                      </span>
-                      {getRoleBadge(cRole)}
-                      {comment.is_pinned && (
+                return (
+                  <div
+                    key={comment.id}
+                    className="p-2"
+                    style={{
+                      backgroundColor: comment.is_pinned ? '#fffbeb' : '#ffffff',
+                      border: comment.is_pinned ? '1.5px solid #f59e0b' : '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
+                  >
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
+                      <div className="d-flex align-items-center gap-2 flex-wrap">
                         <span
                           className="badge"
                           style={{
-                            backgroundColor: '#fef3c7',
-                            color: '#b45309',
-                            border: '1px solid #f59e0b',
+                            backgroundColor: '#e2e8f0',
+                            color: '#0f172a',
                             fontFamily: 'var(--font-pixel)',
                             fontSize: '9px',
                           }}
                         >
-                          📌 Fijado por el creador
+                          @{cAuthor}
                         </span>
-                      )}
-                    </div>
+                        {getRoleBadge(cRole)}
+                        {comment.is_pinned && (
+                          <span
+                            className="badge"
+                            style={{
+                              backgroundColor: '#fef3c7',
+                              color: '#b45309',
+                              border: '1px solid #f59e0b',
+                              fontFamily: 'var(--font-pixel)',
+                              fontSize: '9px',
+                            }}
+                          >
+                            📌 Fijado por el creador
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="d-flex align-items-center gap-2">
-                      {isPostCreator && (
+                      <div className="d-flex align-items-center gap-2">
+                        {isPostCreator && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCommentPin(comment.id)}
+                            title={comment.is_pinned ? 'Desfijar comentario' : 'Fijar comentario'}
+                            className="btn btn-sm p-0 px-2"
+                            style={{
+                              backgroundColor: comment.is_pinned ? '#fef3c7' : '#f1f5f9',
+                              color: comment.is_pinned ? '#b45309' : '#64748b',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '12px',
+                              fontSize: '10px',
+                            }}
+                          >
+                            📌 {comment.is_pinned ? 'Fijado' : 'Fijar'}
+                          </button>
+                        )}
+
                         <button
                           type="button"
-                          onClick={() => handleToggleCommentPin(comment.id)}
-                          title={comment.is_pinned ? 'Desfijar comentario' : 'Fijar comentario'}
-                          className="btn btn-sm p-0 px-2"
+                          onClick={() => handleToggleCommentLike(comment.id)}
+                          aria-pressed={Boolean(comment.is_liked)}
+                          title={comment.is_liked ? 'Quitar Me gusta' : 'Dar Me gusta al comentario'}
+                          className="btn btn-sm p-0 px-2 d-inline-flex align-items-center gap-1"
                           style={{
-                            backgroundColor: comment.is_pinned ? '#fef3c7' : '#f1f5f9',
-                            color: comment.is_pinned ? '#b45309' : '#64748b',
-                            border: '1px solid #cbd5e1',
+                            backgroundColor: comment.is_liked ? '#fee2e2' : '#f1f5f9',
+                            color: comment.is_liked ? '#dc2626' : '#475569',
+                            border: `1px solid ${comment.is_liked ? '#fca5a5' : '#cbd5e1'}`,
                             borderRadius: '12px',
                             fontSize: '10px',
+                            fontFamily: 'var(--font-pixel)',
                           }}
                         >
-                          📌 {comment.is_pinned ? 'Fijado' : 'Fijar'}
+                          <span>{comment.is_liked ? '❤️' : '🤍'}</span>
+                          <span>{comment.likes_count || 0}</span>
                         </button>
-                      )}
 
-                      <button
-                        type="button"
-                        onClick={() => handleToggleCommentLike(comment.id)}
-                        aria-pressed={Boolean(comment.is_liked)}
-                        title={comment.is_liked ? 'Quitar Me gusta' : 'Dar Me gusta al comentario'}
-                        className="btn btn-sm p-0 px-2 d-inline-flex align-items-center gap-1"
-                        style={{
-                          backgroundColor: comment.is_liked ? '#fee2e2' : '#f1f5f9',
-                          color: comment.is_liked ? '#dc2626' : '#475569',
-                          border: `1px solid ${comment.is_liked ? '#fca5a5' : '#cbd5e1'}`,
-                          borderRadius: '12px',
-                          fontSize: '10px',
-                          fontFamily: 'var(--font-pixel)',
-                        }}
-                      >
-                        <span>{comment.is_liked ? '❤️' : '🤍'}</span>
-                        <span>{comment.likes_count || 0}</span>
-                      </button>
+                        {onReport && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-link text-muted p-0"
+                            title="Denunciar comentario"
+                            onClick={() => onReport(null, `Comentario de @${cAuthor}`, comment.id)}
+                            style={{ fontSize: '11px', textDecoration: 'none' }}
+                          >
+                            🚨
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="small text-dark">
+                      <FormattedContent content={comment.content} />
                     </div>
                   </div>
-
-                  <div className="small text-dark">
-                    <FormattedContent content={comment.content} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </article>

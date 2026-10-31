@@ -31,7 +31,12 @@ function Home() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [reportModalState, setReportModalState] = useState({ isOpen: false, postId: null, title: '' });
+  const [reportModalState, setReportModalState] = useState({
+    isOpen: false,
+    postId: null,
+    commentId: null,
+    title: '',
+  });
   const [feedbackMsg, setFeedbackMsg] = useState('');
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,16 +69,17 @@ function Home() {
     fetchPostList();
   }, [fetchPostList]);
 
-  const handleOpenReport = (postId, postTitle) => {
+  const handleOpenReport = (postId, postTitle, commentId = null) => {
     setReportModalState({
       isOpen: true,
-      postId,
+      postId: postId || null,
+      commentId: commentId || null,
       title: postTitle,
     });
   };
 
   const handleCloseReport = () => {
-    setReportModalState({ isOpen: false, postId: null, title: '' });
+    setReportModalState({ isOpen: false, postId: null, commentId: null, title: '' });
   };
 
   const handleDeletePost = async (postId) => {
@@ -349,6 +355,7 @@ function Home() {
         isOpen={reportModalState.isOpen}
         onClose={handleCloseReport}
         postId={reportModalState.postId}
+        commentId={reportModalState.commentId}
         title={reportModalState.title}
       />
 

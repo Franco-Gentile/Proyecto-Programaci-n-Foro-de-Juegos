@@ -80,8 +80,8 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return User.objects.none()
-        if user.is_staff or user.role == User.Role.ADMIN:
-            return User.objects.filter(is_deleted=False)
+        if user.is_staff or user.role in [User.Role.ADMIN, User.Role.MODERATOR]:
+            return User.objects.filter(is_deleted=False).order_by('id')
         return User.objects.filter(pk=user.pk, is_deleted=False)
 
     def get_serializer_class(self):
@@ -139,6 +139,50 @@ class UserViewSet(viewsets.ModelViewSet):
         ).exclude(pk=request.user.pk)[:10]
         data = [{'id': u.id, 'username': u.username, 'role': u.role, 'avatar': u.avatar} for u in users]
         return Response(data)
+
+    @action(detail=True, methods=['patch', 'post'], permission_classes=[permissions.IsAuthenticated], url_path='change-role')
+    def change_role(self, request, pk=None):
+        if not (request.user.is_staff or request.user.role == User.Role.ADMIN):
+            return Response({'detail': 'Solo el administrador puede cambiar el rol de los usuarios.'}, status=status.HTTP_403_FORBIDDEN)
+        target_user = User.objects.filter(pk=pk, is_deleted=False).first()
+        if not target_user:
+            return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        new_role = request.data.get('role')
+        if new_role not in [User.Role.ADMIN, User.Role.MODERATOR, User.Role.USER]:
+            return Response({'detail': 'Rol inválido. Opciones permitidas: USER, MODERATOR, ADMIN.'}, status=status.HTTP_400_BAD_REQUEST)
+        target_user.role = new_role
+        target_user.is_staff = (new_role in [User.Role.ADMIN, User.Role.MODERATOR])
+        target_user.save(update_fields=['role', 'is_staff'])
+        return Response(UserSerializer(target_user, context={'request': request}).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post', 'patch'], permission_classes=[permissions.IsAuthenticated], url_path='ban')
+    def ban(self, request, pk=None):
+        if not (request.user.is_staff or request.user.role in [User.Role.ADMIN, User.Role.MODERATOR]):
+            return Response({'detail': 'No tenés permisos para banear usuarios.'}, status=status.HTTP_403_FORBIDDEN)
+        target_user = User.objects.filter(pk=pk, is_deleted=False).first()
+        if not target_user:
+            return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        if target_user.pk == request.user.pk:
+            return Response({'detail': 'No podés banearte a vos mismo.'}, status=status.HTTP_400_BAD_REQUEST)
+        if target_user.role == User.Role.ADMIN and request.user.role != User.Role.ADMIN:
+            return Response({'detail': 'Un moderador no puede banear a un administrador.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if 'is_active' in request.data:
+            target_user.is_active = bool(request.data.get('is_active'))
+        else:
+            target_user.is_active = not target_user.is_active
+        target_user.save(update_fields=['is_active'])
+
+        if not target_user.is_active:
+            try:
+                from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+                tokens = OutstandingToken.objects.filter(user=target_user)
+                for t in tokens:
+                    BlacklistedToken.objects.get_or_create(token=t)
+            except Exception:
+                pass
+
+        return Response(UserSerializer(target_user, context={'request': request}).data, status=status.HTTP_200_OK)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -412,7 +456,7 @@ class ImageViewSet(viewsets.ModelViewSet):
 
 
 class ReportViewSet(viewsets.ModelViewSet):
-    queryset = Report.objects.all()
+    queryset = Report.objects.select_related('reported_by', 'post', 'comment').all()
     serializer_class = ReportSerializer
     permission_classes = [ReportPermission]
     pagination_class = StandardPagination

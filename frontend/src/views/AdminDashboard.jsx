@@ -18,6 +18,8 @@ import {
   deletePost,
   deleteComment,
   getUsers,
+  changeUserRole,
+  toggleUserBan,
 } from '../services/forumService';
 
 function AdminDashboard() {
@@ -305,6 +307,40 @@ function AdminDashboard() {
       showNotification('success', 'Contenido eliminado y reporte resuelto');
     } catch (err) {
       showNotification('danger', 'Error al eliminar el contenido');
+    }
+  };
+
+  /* ========================================================================
+     HANDLERS: USUARIOS (ROLES Y BANEO)
+     ======================================================================== */
+  const handleChangeRole = async (targetUser, newRole) => {
+    if (targetUser.role === newRole) return;
+    try {
+      const updated = await changeUserRole(targetUser.id, newRole);
+      setUsersList((prev) => prev.map((u) => (u.id === targetUser.id ? updated : u)));
+      showNotification('success', `Rol de @${targetUser.username} actualizado a ${newRole}`);
+    } catch (err) {
+      showNotification('danger', err.message || 'No se pudo cambiar el rol');
+    }
+  };
+
+  const handleToggleBan = async (targetUser) => {
+    const willBeActive = targetUser.is_active === false;
+    const actionLabel = willBeActive ? 'desbanear' : 'banear';
+    if (!window.confirm(`¿Seguro que deseás ${actionLabel} al usuario @${targetUser.username}?`)) {
+      return;
+    }
+    try {
+      const updated = await toggleUserBan(targetUser.id, willBeActive);
+      setUsersList((prev) => prev.map((u) => (u.id === targetUser.id ? updated : u)));
+      showNotification(
+        'success',
+        willBeActive
+          ? `Usuario @${targetUser.username} desbaneado correctamente`
+          : `Usuario @${targetUser.username} baneado correctamente`
+      );
+    } catch (err) {
+      showNotification('danger', err.message || 'Error al actualizar el estado del usuario');
     }
   };
 
@@ -752,19 +788,38 @@ function AdminDashboard() {
                             <p className="text-muted small mb-3 p-2 bg-light rounded border">{report.reason}</p>
                             
                             <p className="small mb-1">
-                              <strong>Tipo:</strong> {report.post_id ? 'Publicación' : 'Comentario'}
+                              <strong>Tipo:</strong>{' '}
+                              {report.post_id ? (
+                                <>
+                                  Publicación ({report.post || `#${report.post_id}`}){' '}
+                                  <Link to={`/posts/${report.post_id}`} className="fw-bold ms-1">
+                                    Ver post →
+                                  </Link>
+                                </>
+                              ) : (
+                                `Comentario (${report.comment || `#${report.comment_id}`})`
+                              )}
                             </p>
                             <p className="small mb-3">
-                              <strong>Reportado por:</strong> {typeof report.reporter === 'string' ? report.reporter : report.reporter?.username || 'Usuario'}
+                              <strong>Reportado por:</strong>{' '}
+                              {typeof report.reporter === 'string'
+                                ? report.reporter
+                                : report.reporter?.username || report.user?.username || 'Usuario'}
                             </p>
 
                             {report.status === 'PENDING' && (
-                              <div className="d-flex gap-2">
+                              <div className="d-flex gap-2 flex-wrap">
                                 <button
                                   className="btn btn-sm btn-outline-danger flex-grow-1"
                                   onClick={() => handleDeleteReportedItem(report)}
                                 >
-                                  Borrar Contenido
+                                  🗑️ Borrar Contenido
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-success flex-grow-1"
+                                  onClick={() => handleResolveReport(report.id)}
+                                >
+                                  ✅ Marcar Resuelto
                                 </button>
                                 <button
                                   className="btn btn-sm btn-outline-secondary flex-grow-1"
@@ -811,28 +866,103 @@ function AdminDashboard() {
                           <th>ID</th>
                           <th>Usuario</th>
                           <th>Email</th>
+                          <th>Estado</th>
                           <th>Rol</th>
                           <th>Fecha Registro</th>
+                          <th className="text-end">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {usersList.map((u) => (
-                          <tr key={u.id} className="border-bottom">
-                            <td className="text-muted small">#{u.id}</td>
-                            <td className="fw-bold">{u.username}</td>
-                            <td>{u.email}</td>
-                            <td>
-                              <span className={`badge ${
-                                u.role === 'ADMIN' ? 'bg-danger' : u.role === 'MODERATOR' ? 'bg-warning text-dark' : 'bg-primary'
-                              }`}>
-                                {u.role}
-                              </span>
-                            </td>
-                            <td className="text-muted small">
-                              {new Date(u.date_joined).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
+                        {usersList.map((u) => {
+                          const isSelf = Number(u.id) === Number(user?.id);
+                          const isBanned = u.is_active === false;
+                          const canChangeRole = user?.role === 'ADMIN';
+                          const canBan =
+                            !isSelf &&
+                            (user?.role === 'ADMIN' ||
+                              (user?.role === 'MODERATOR' && u.role !== 'ADMIN'));
+
+                          return (
+                            <tr
+                              key={u.id}
+                              className="border-bottom"
+                              style={{ backgroundColor: isBanned ? '#fef2f2' : undefined }}
+                            >
+                              <td className="text-muted small">#{u.id}</td>
+                              <td className="fw-bold">
+                                {u.username}{' '}
+                                {isSelf && (
+                                  <span className="badge bg-secondary ms-1" style={{ fontSize: '9px' }}>
+                                    Vos
+                                  </span>
+                                )}
+                              </td>
+                              <td>{u.email}</td>
+                              <td>
+                                {isBanned ? (
+                                  <span className="badge bg-danger">🚫 Baneado</span>
+                                ) : (
+                                  <span className="badge bg-success">🟢 Activo</span>
+                                )}
+                              </td>
+                              <td>
+                                {canChangeRole ? (
+                                  <select
+                                    className="form-select form-select-sm"
+                                    value={u.role}
+                                    disabled={isSelf}
+                                    onChange={(e) => handleChangeRole(u, e.target.value)}
+                                    style={{
+                                      maxWidth: '145px',
+                                      border: '1.5px solid var(--border-dark)',
+                                      fontWeight: 700,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    <option value="USER">🎮 USER</option>
+                                    <option value="MODERATOR">🛡️ MODERATOR</option>
+                                    <option value="ADMIN">👑 ADMIN</option>
+                                  </select>
+                                ) : (
+                                  <span
+                                    className={`badge ${
+                                      u.role === 'ADMIN'
+                                        ? 'bg-danger'
+                                        : u.role === 'MODERATOR'
+                                        ? 'bg-warning text-dark'
+                                        : 'bg-primary'
+                                    }`}
+                                  >
+                                    {u.role}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="text-muted small">
+                                {new Date(u.date_joined).toLocaleDateString()}
+                              </td>
+                              <td className="text-end">
+                                {canBan ? (
+                                  <button
+                                    type="button"
+                                    className={`btn btn-sm ${
+                                      isBanned ? 'btn-outline-success' : 'btn-outline-danger'
+                                    }`}
+                                    onClick={() => handleToggleBan(u)}
+                                    style={{
+                                      border: '1.5px solid var(--border-dark)',
+                                      fontFamily: 'var(--font-pixel)',
+                                      fontSize: '10px',
+                                    }}
+                                  >
+                                    {isBanned ? '✅ Desbanear' : '🚫 Banear'}
+                                  </button>
+                                ) : (
+                                  <span className="text-muted small">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

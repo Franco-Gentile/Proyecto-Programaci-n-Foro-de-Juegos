@@ -8,14 +8,19 @@ class Report(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('REVIEWED', 'Reviewed'),
+        ('RESOLVED', 'Resolved'),
+        ('DISMISSED', 'Dismissed'),
         ('DELETED', 'Deleted'),
     ]
     reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports')
     post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True, related_name='reports')
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True, blank=True, related_name='reports')
     reason = models.TextField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def clean(self):
         if not self.post and not self.comment:

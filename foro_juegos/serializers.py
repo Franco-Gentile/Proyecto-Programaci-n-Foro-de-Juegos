@@ -350,21 +350,21 @@ class ImageSerializer(serializers.ModelSerializer):
 
 
 class ReportSerializer(serializers.ModelSerializer):
-    user = PublicUserSerializer(read_only=True)
+    user = PublicUserSerializer(source='reported_by', read_only=True)
+    reporter = PublicUserSerializer(source='reported_by', read_only=True)
+    reported_by = PublicUserSerializer(read_only=True)
     post = serializers.StringRelatedField(read_only=True)
     comment = serializers.StringRelatedField(read_only=True)
 
     post_id = serializers.PrimaryKeyRelatedField(
         queryset=Post.objects.all(),
         source='post',
-        write_only=True,
         required=False,
         allow_null=True
     )
     comment_id = serializers.PrimaryKeyRelatedField(
         queryset=Comment.objects.all(),
         source='comment',
-        write_only=True,
         required=False,
         allow_null=True
     )
@@ -372,18 +372,19 @@ class ReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
         fields = [
-            'id', 'user', 'post', 'post_id', 'comment', 'comment_id',
-            'reason', 'status', 'created_at', 'updated_at'
+            'id', 'user', 'reporter', 'reported_by',
+            'post', 'post_id', 'comment', 'comment_id',
+            'reason', 'status', 'created_at'
         ]
-        read_only_fields = ['user', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'reporter', 'reported_by', 'created_at']
 
     def validate(self, data):
-        post = data.get('post')
-        comment = data.get('comment')
+        post = data.get('post', getattr(self.instance, 'post', None))
+        comment = data.get('comment', getattr(self.instance, 'comment', None))
 
         if not post and not comment:
             raise serializers.ValidationError("Debe especificar una publicación o un comentario para reportar.")
-        if post and comment:
+        if data.get('post') and data.get('comment'):
             raise serializers.ValidationError("Solo puede reportar una publicación O un comentario, no ambos a la vez.")
 
         return data

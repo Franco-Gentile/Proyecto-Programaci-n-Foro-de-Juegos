@@ -37,7 +37,7 @@ export async function fetchWithAuth(url, options = {}) {
 
   let response = await fetch(url, options);
 
-  if (response.status === 401 && token) {
+  if (response.status === 401) {
     const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
     if (refresh) {
       try {
@@ -53,18 +53,27 @@ export async function fetchWithAuth(url, options = {}) {
           // Actualizar token y reintentar
           options.headers['Authorization'] = `Bearer ${data.access}`;
           response = await fetch(url, options);
-        } else {
-          // Refresh falló, la sesión realmente expiró
-          throw new Error('Refresh token expired');
+          return response;
         }
       } catch (error) {
-        // Falló el refresh, deslogueamos forzosamente
-        localStorage.removeItem(SESSION_KEY);
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        window.dispatchEvent(new Event('storage')); // Notificamos a AuthContext
-        return response; // Devolvemos el 401 original
+        // Continúa hacia limpieza de sesión expirada
       }
+    }
+
+    if (token || localStorage.getItem(SESSION_KEY)) {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+      }
+    }
+
+    const method = (options.method || 'GET').toUpperCase();
+    if (method === 'GET' && token) {
+      const cleanHeaders = { ...options.headers };
+      delete cleanHeaders['Authorization'];
+      response = await fetch(url, { ...options, headers: cleanHeaders });
     }
   }
 
