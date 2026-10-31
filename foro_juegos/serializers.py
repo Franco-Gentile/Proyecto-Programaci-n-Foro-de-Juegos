@@ -1,4 +1,5 @@
 import os
+from django.db.models import Count
 from rest_framework import serializers
 from .models import User, Category, Game, Post, Comment, Image, PostMedia, Report
 
@@ -134,20 +135,26 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    post_count = serializers.IntegerField(source='posts.count', read_only=True)
+    post_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
         fields = '__all__'
 
+    def get_post_count(self, obj):
+        return obj.posts.filter(is_deleted=False).count()
+
 
 class GameSerializer(serializers.ModelSerializer):
-    post_count = serializers.IntegerField(source='posts.count', read_only=True)
+    post_count = serializers.SerializerMethodField()
     categories = CategorySerializer(source='genres', many=True, read_only=True)
 
     class Meta:
         model = Game
         fields = '__all__'
+
+    def get_post_count(self, obj):
+        return obj.posts.filter(is_deleted=False).count()
 
 
 class PostMediaSerializer(serializers.ModelSerializer):
@@ -173,6 +180,43 @@ class PostMediaSerializer(serializers.ModelSerializer):
         return value
 
 
+class CommentSerializer(serializers.ModelSerializer):
+    user = PublicUserSerializer(read_only=True)
+    post_id = serializers.PrimaryKeyRelatedField(
+        queryset=Post.objects.all(),
+        source='post',
+        write_only=True
+    )
+    post_user_id = serializers.IntegerField(source='post.user_id', read_only=True)
+    mentioned_users = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    is_pinned = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = [
+            'id', 'post_id', 'post_user_id', 'user', 'content',
+            'mentioned_users', 'likes_count', 'is_liked', 'is_pinned',
+            'created_at', 'updated_at', 'is_deleted'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'is_pinned']
+
+    def get_mentioned_users(self, obj):
+        return [{'id': u.id, 'username': u.username, 'role': u.role} for u in obj.mentioned_users.all()]
+
+    def get_likes_count(self, obj):
+        if hasattr(obj, 'num_likes'):
+            return obj.num_likes
+        return obj.likes.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            return obj.likes.filter(pk=request.user.pk).exists()
+        return False
+
+
 class PostSerializer(serializers.ModelSerializer):
     user = PublicUserSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
@@ -193,18 +237,45 @@ class PostSerializer(serializers.ModelSerializer):
     )
     media_items = PostMediaSerializer(many=True, read_only=True)
     mentioned_users = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    top_comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = [
             'id', 'title', 'content', 'user', 'category', 'category_id',
             'game', 'game_id', 'media_items', 'mentioned_users',
+            'likes_count', 'is_liked', 'comment_count', 'top_comments',
             'created_at', 'updated_at', 'is_deleted'
         ]
         read_only_fields = ['created_at', 'updated_at']
 
     def get_mentioned_users(self, obj):
         return [{'id': u.id, 'username': u.username, 'role': u.role} for u in obj.mentioned_users.all()]
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            return obj.likes.filter(pk=request.user.pk).exists()
+        return False
+
+    def get_comment_count(self, obj):
+        return obj.comments.filter(is_deleted=False).count()
+
+    def get_top_comments(self, obj):
+        qs = (
+            obj.comments.filter(is_deleted=False)
+            .select_related('user', 'post')
+            .prefetch_related('mentioned_users', 'likes')
+            .annotate(num_likes=Count('likes'))
+            .order_by('-is_pinned', '-num_likes', '-created_at')[:2]
+        )
+        return CommentSerializer(qs, many=True, context=self.context).data
 
     def validate(self, attrs):
         if not attrs.get('category') and not attrs.get('game'):
@@ -224,6 +295,10 @@ class PostListSerializer(serializers.ModelSerializer):
     user_role = serializers.CharField(source='user.role', read_only=True)
     media_items = PostMediaSerializer(many=True, read_only=True)
     mentioned_users = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    top_comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -231,29 +306,34 @@ class PostListSerializer(serializers.ModelSerializer):
             'id', 'title', 'content', 'user', 'user_id', 'user_role',
             'game', 'game_id', 'game_image', 'category', 'category_id',
             'category_image', 'media_items', 'mentioned_users',
+            'likes_count', 'is_liked', 'comment_count', 'top_comments',
             'created_at', 'is_deleted'
         ]
 
     def get_mentioned_users(self, obj):
         return [{'id': u.id, 'username': u.username, 'role': u.role} for u in obj.mentioned_users.all()]
 
+    def get_likes_count(self, obj):
+        return obj.likes.count()
 
-class CommentSerializer(serializers.ModelSerializer):
-    user = PublicUserSerializer(read_only=True)
-    post_id = serializers.PrimaryKeyRelatedField(
-        queryset=Post.objects.all(),
-        source='post',
-        write_only=True
-    )
-    mentioned_users = serializers.SerializerMethodField()
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            return obj.likes.filter(pk=request.user.pk).exists()
+        return False
 
-    class Meta:
-        model = Comment
-        fields = ['id', 'post_id', 'user', 'content', 'mentioned_users', 'created_at', 'updated_at', 'is_deleted']
-        read_only_fields = ['created_at', 'updated_at']
+    def get_comment_count(self, obj):
+        return obj.comments.filter(is_deleted=False).count()
 
-    def get_mentioned_users(self, obj):
-        return [{'id': u.id, 'username': u.username, 'role': u.role} for u in obj.mentioned_users.all()]
+    def get_top_comments(self, obj):
+        qs = (
+            obj.comments.filter(is_deleted=False)
+            .select_related('user', 'post')
+            .prefetch_related('mentioned_users', 'likes')
+            .annotate(num_likes=Count('likes'))
+            .order_by('-is_pinned', '-num_likes', '-created_at')[:2]
+        )
+        return CommentSerializer(qs, many=True, context=self.context).data
 
 
 class ImageSerializer(serializers.ModelSerializer):

@@ -205,7 +205,13 @@ function Home() {
 
                 {user && (
                   <Link
-                    to="/create-post"
+                    to={
+                      gameParam
+                        ? `/create-post?game=${gameParam}`
+                        : categoryParam
+                        ? `/create-post?category=${categoryParam}`
+                        : '/create-post'
+                    }
                     className="btn-retro-auth text-decoration-none"
                     style={{
                       backgroundColor: '#6366f1',
@@ -283,7 +289,13 @@ function Home() {
                     </p>
                     {user ? (
                       <Link
-                        to="/create-post"
+                        to={
+                          gameParam
+                            ? `/create-post?game=${gameParam}`
+                            : categoryParam
+                            ? `/create-post?category=${categoryParam}`
+                            : '/create-post'
+                        }
                         className="btn btn-primary"
                         style={{
                           border: '2px solid var(--border-dark)',
@@ -310,6 +322,7 @@ function Home() {
                       title={post.title}
                       content={post.content}
                       username={typeof post.user === 'string' ? post.user : (post.user?.username || 'Anónimo')}
+                      userId={post.user_id || (typeof post.user === 'object' ? post.user?.id : null)}
                       userRole={post.user_role || (typeof post.user === 'object' ? post.user.role : 'USER')}
                       avatar="🎮"
                       timeAgo={getTimeAgo(post.created_at)}
@@ -317,6 +330,10 @@ function Home() {
                       category={post.category}
                       mediaItems={post.media_items || []}
                       imageUrl={post.images && post.images.length > 0 ? post.images[0].image_url : null}
+                      commentCount={post.comment_count ?? 0}
+                      likesCount={post.likes_count ?? 0}
+                      isLiked={Boolean(post.is_liked)}
+                      topComments={post.top_comments || []}
                       onReport={handleOpenReport}
                       onDelete={handleDeletePost}
                       canDelete={isUserOwnerOrAdmin(post)}

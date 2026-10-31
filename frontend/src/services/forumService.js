@@ -213,6 +213,17 @@ export async function deletePost(id) {
   return true;
 }
 
+export async function togglePostLike(postId) {
+  const response = await fetchWithAuth(`${API_URL}/posts/${postId}/like/`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Error al procesar el Me gusta');
+  }
+  return await response.json();
+}
+
 /* ==========================================================================
    COMENTARIOS
    ========================================================================== */
@@ -253,6 +264,28 @@ export async function deleteComment(id) {
     throw new Error('Error al eliminar el comentario');
   }
   return true;
+}
+
+export async function toggleCommentLike(commentId) {
+  const response = await fetchWithAuth(`${API_URL}/comments/${commentId}/like/`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Error al procesar el Me gusta en el comentario');
+  }
+  return await response.json();
+}
+
+export async function toggleCommentPin(commentId) {
+  const response = await fetchWithAuth(`${API_URL}/comments/${commentId}/pin/`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Error al fijar o desfijar el comentario');
+  }
+  return await response.json();
 }
 
 /* ==========================================================================

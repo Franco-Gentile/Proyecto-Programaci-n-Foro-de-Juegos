@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Q, Count
 from rest_framework import status, viewsets, permissions, throttling
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -20,7 +20,6 @@ from .serializers import (
 
 from .services.mentions import sync_mentions
 from .services.media_validator import validate_uploaded_file, validate_youtube_url, validate_media_url
-
 
 
 class StandardPagination(PageNumberPagination):
@@ -142,8 +141,6 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(data)
 
 
-
-
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -184,7 +181,7 @@ class PostViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        qs = Post.objects.filter(is_deleted=False).prefetch_related('media_items', 'mentioned_users')
+        qs = Post.objects.filter(is_deleted=False).select_related('user', 'game', 'category').prefetch_related('media_items', 'mentioned_users', 'likes')
         category = self.request.query_params.get('category')
         game = self.request.query_params.get('game')
         user_param = self.request.query_params.get('user')
@@ -299,6 +296,24 @@ class PostViewSet(viewsets.ModelViewSet):
         obj.save()
         return Response({'detail': 'Post restored successfully.'})
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, pk=None):
+        post = Post.objects.filter(pk=pk, is_deleted=False).first()
+        if not post:
+            return Response({'detail': 'Publicación no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        if post.likes.filter(pk=user.pk).exists():
+            post.likes.remove(user)
+            is_liked = False
+        else:
+            post.likes.add(user)
+            is_liked = True
+        return Response({
+            'id': post.id,
+            'is_liked': is_liked,
+            'likes_count': post.likes.count()
+        }, status=status.HTTP_200_OK)
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
@@ -307,7 +322,13 @@ class CommentViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        qs = Comment.objects.filter(is_deleted=False).prefetch_related('mentioned_users')
+        qs = (
+            Comment.objects.filter(is_deleted=False)
+            .select_related('user', 'post')
+            .prefetch_related('mentioned_users', 'likes')
+            .annotate(num_likes=Count('likes'))
+            .order_by('-is_pinned', '-num_likes', '-created_at')
+        )
         post_id = self.request.query_params.get('post')
         if post_id:
             qs = qs.filter(post_id=post_id)
@@ -332,6 +353,55 @@ class CommentViewSet(viewsets.ModelViewSet):
         obj.save()
         return Response({'detail': 'Comment restored successfully.'})
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, pk=None):
+        comment = Comment.objects.filter(pk=pk, is_deleted=False).first()
+        if not comment:
+            return Response({'detail': 'Comentario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        if comment.likes.filter(pk=user.pk).exists():
+            comment.likes.remove(user)
+            is_liked = False
+        else:
+            comment.likes.add(user)
+            is_liked = True
+        return Response({
+            'id': comment.id,
+            'is_liked': is_liked,
+            'likes_count': comment.likes.count()
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def pin(self, request, pk=None):
+        comment = Comment.objects.select_related('post').filter(pk=pk, is_deleted=False).first()
+        if not comment:
+            return Response({'detail': 'Comentario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        post = comment.post
+        is_post_creator = (post.user_id == request.user.id)
+        is_admin = (request.user.role in [User.Role.ADMIN, User.Role.MODERATOR] or request.user.is_staff)
+        if not (is_post_creator or is_admin):
+            return Response(
+                {'detail': 'Solo el creador de la publicación puede fijar comentarios.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if comment.is_pinned:
+            comment.is_pinned = False
+            comment.save(update_fields=['is_pinned'])
+        else:
+            pinned_count = Comment.objects.filter(post=post, is_deleted=False, is_pinned=True).count()
+            if pinned_count >= 2:
+                return Response(
+                    {'detail': 'Solo podés fijar hasta 2 comentarios por publicación.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            comment.is_pinned = True
+            comment.save(update_fields=['is_pinned'])
+
+        return Response({
+            'id': comment.id,
+            'is_pinned': comment.is_pinned
+        }, status=status.HTTP_200_OK)
 
 
 class ImageViewSet(viewsets.ModelViewSet):

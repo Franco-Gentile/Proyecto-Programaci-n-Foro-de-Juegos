@@ -692,11 +692,16 @@ function Profile() {
                         title={post.title}
                         content={post.content}
                         username={user.username}
+                        userId={user.id}
                         userRole={user.role}
                         avatar={userProfile?.avatar || '👾'}
                         game={post.game}
                         category={post.category}
                         mediaItems={post.media_items || []}
+                        commentCount={post.comment_count ?? 0}
+                        likesCount={post.likes_count ?? 0}
+                        isLiked={Boolean(post.is_liked)}
+                        topComments={post.top_comments || []}
                         canDelete={true}
                         onDelete={handleDeletePost}
                       />
@@ -717,6 +722,7 @@ function Profile() {
                             ? post.user
                             : post.user?.username || 'Usuario'
                         }
+                        userId={post.user_id || (typeof post.user === 'object' ? post.user?.id : null)}
                         userRole={
                           post.user_role || (typeof post.user === 'object' ? post.user.role : 'USER')
                         }
@@ -724,6 +730,10 @@ function Profile() {
                         game={post.game}
                         category={post.category}
                         mediaItems={post.media_items || []}
+                        commentCount={post.comment_count ?? 0}
+                        likesCount={post.likes_count ?? 0}
+                        isLiked={Boolean(post.is_liked)}
+                        topComments={post.top_comments || []}
                         canDelete={false}
                       />
                     ))}
