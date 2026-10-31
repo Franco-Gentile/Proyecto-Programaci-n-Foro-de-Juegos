@@ -874,13 +874,17 @@ function AdminDashboard() {
                       </thead>
                       <tbody>
                         {usersList.map((u) => {
-                          const isSelf = Number(u.id) === Number(user?.id);
+                          const currentAdminRecord = usersList.find(
+                            (item) => Number(item.id) === Number(user?.id) || item.username === user?.username
+                          );
+                          const effectiveRole = currentAdminRecord?.role || user?.role || (user?.username === 'admin' ? 'ADMIN' : 'USER');
+                          const isSelf = Number(u.id) === Number(user?.id) || u.username === user?.username;
                           const isBanned = u.is_active === false;
-                          const canChangeRole = user?.role === 'ADMIN';
+                          const canChangeRole = effectiveRole === 'ADMIN';
                           const canBan =
                             !isSelf &&
-                            (user?.role === 'ADMIN' ||
-                              (user?.role === 'MODERATOR' && u.role !== 'ADMIN'));
+                            (effectiveRole === 'ADMIN' ||
+                              (effectiveRole === 'MODERATOR' && u.role !== 'ADMIN'));
 
                           return (
                             <tr

@@ -299,7 +299,7 @@ export async function toggleCommentPin(commentId) {
    ========================================================================== */
 
 export async function getReports() {
-  const response = await fetchWithAuth(`${API_URL}/reports/`);
+  const response = await fetchWithAuth(`${API_URL}/reports/?page_size=100`);
   if (!response.ok) {
     throw new Error('Error al cargar los reportes de moderación');
   }
@@ -345,7 +345,7 @@ export async function updateReportStatus(id, status) {
    ========================================================================== */
 
 export async function getUsers() {
-  const response = await fetchWithAuth(`${API_URL}/users/`);
+  const response = await fetchWithAuth(`${API_URL}/users/?page_size=100`);
   if (!response.ok) {
     throw new Error('Error al cargar los usuarios');
   }
