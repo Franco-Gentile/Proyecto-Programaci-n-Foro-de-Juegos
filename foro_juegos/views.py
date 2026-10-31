@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Q, Count
 from rest_framework import status, viewsets, permissions, throttling
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -20,7 +20,6 @@ from .serializers import (
 
 from .services.mentions import sync_mentions
 from .services.media_validator import validate_uploaded_file, validate_youtube_url, validate_media_url
-
 
 
 class StandardPagination(PageNumberPagination):
@@ -81,8 +80,8 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return User.objects.none()
-        if user.is_staff or user.role == User.Role.ADMIN:
-            return User.objects.filter(is_deleted=False)
+        if user.is_staff or user.role in [User.Role.ADMIN, User.Role.MODERATOR]:
+            return User.objects.filter(is_deleted=False).order_by('id')
         return User.objects.filter(pk=user.pk, is_deleted=False)
 
     def get_serializer_class(self):
@@ -141,7 +140,49 @@ class UserViewSet(viewsets.ModelViewSet):
         data = [{'id': u.id, 'username': u.username, 'role': u.role, 'avatar': u.avatar} for u in users]
         return Response(data)
 
+    @action(detail=True, methods=['patch', 'post'], permission_classes=[permissions.IsAuthenticated], url_path='change-role')
+    def change_role(self, request, pk=None):
+        if not (request.user.is_staff or request.user.role == User.Role.ADMIN):
+            return Response({'detail': 'Solo el administrador puede cambiar el rol de los usuarios.'}, status=status.HTTP_403_FORBIDDEN)
+        target_user = User.objects.filter(pk=pk, is_deleted=False).first()
+        if not target_user:
+            return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        new_role = request.data.get('role')
+        if new_role not in [User.Role.ADMIN, User.Role.MODERATOR, User.Role.USER]:
+            return Response({'detail': 'Rol inválido. Opciones permitidas: USER, MODERATOR, ADMIN.'}, status=status.HTTP_400_BAD_REQUEST)
+        target_user.role = new_role
+        target_user.is_staff = (new_role in [User.Role.ADMIN, User.Role.MODERATOR])
+        target_user.save(update_fields=['role', 'is_staff'])
+        return Response(UserSerializer(target_user, context={'request': request}).data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post', 'patch'], permission_classes=[permissions.IsAuthenticated], url_path='ban')
+    def ban(self, request, pk=None):
+        if not (request.user.is_staff or request.user.role in [User.Role.ADMIN, User.Role.MODERATOR]):
+            return Response({'detail': 'No tenés permisos para banear usuarios.'}, status=status.HTTP_403_FORBIDDEN)
+        target_user = User.objects.filter(pk=pk, is_deleted=False).first()
+        if not target_user:
+            return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        if target_user.pk == request.user.pk:
+            return Response({'detail': 'No podés banearte a vos mismo.'}, status=status.HTTP_400_BAD_REQUEST)
+        if target_user.role == User.Role.ADMIN and request.user.role != User.Role.ADMIN:
+            return Response({'detail': 'Un moderador no puede banear a un administrador.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if 'is_active' in request.data:
+            target_user.is_active = bool(request.data.get('is_active'))
+        else:
+            target_user.is_active = not target_user.is_active
+        target_user.save(update_fields=['is_active'])
+
+        if not target_user.is_active:
+            try:
+                from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+                tokens = OutstandingToken.objects.filter(user=target_user)
+                for t in tokens:
+                    BlacklistedToken.objects.get_or_create(token=t)
+            except Exception:
+                pass
+
+        return Response(UserSerializer(target_user, context={'request': request}).data, status=status.HTTP_200_OK)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -184,7 +225,7 @@ class PostViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        qs = Post.objects.filter(is_deleted=False).prefetch_related('media_items', 'mentioned_users')
+        qs = Post.objects.filter(is_deleted=False).select_related('user', 'game', 'category').prefetch_related('media_items', 'mentioned_users', 'likes')
         category = self.request.query_params.get('category')
         game = self.request.query_params.get('game')
         user_param = self.request.query_params.get('user')
@@ -299,6 +340,24 @@ class PostViewSet(viewsets.ModelViewSet):
         obj.save()
         return Response({'detail': 'Post restored successfully.'})
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, pk=None):
+        post = Post.objects.filter(pk=pk, is_deleted=False).first()
+        if not post:
+            return Response({'detail': 'Publicación no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        if post.likes.filter(pk=user.pk).exists():
+            post.likes.remove(user)
+            is_liked = False
+        else:
+            post.likes.add(user)
+            is_liked = True
+        return Response({
+            'id': post.id,
+            'is_liked': is_liked,
+            'likes_count': post.likes.count()
+        }, status=status.HTTP_200_OK)
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
@@ -307,7 +366,13 @@ class CommentViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        qs = Comment.objects.filter(is_deleted=False).prefetch_related('mentioned_users')
+        qs = (
+            Comment.objects.filter(is_deleted=False)
+            .select_related('user', 'post')
+            .prefetch_related('mentioned_users', 'likes')
+            .annotate(num_likes=Count('likes'))
+            .order_by('-is_pinned', '-num_likes', '-created_at')
+        )
         post_id = self.request.query_params.get('post')
         if post_id:
             qs = qs.filter(post_id=post_id)
@@ -332,6 +397,55 @@ class CommentViewSet(viewsets.ModelViewSet):
         obj.save()
         return Response({'detail': 'Comment restored successfully.'})
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, pk=None):
+        comment = Comment.objects.filter(pk=pk, is_deleted=False).first()
+        if not comment:
+            return Response({'detail': 'Comentario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        if comment.likes.filter(pk=user.pk).exists():
+            comment.likes.remove(user)
+            is_liked = False
+        else:
+            comment.likes.add(user)
+            is_liked = True
+        return Response({
+            'id': comment.id,
+            'is_liked': is_liked,
+            'likes_count': comment.likes.count()
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def pin(self, request, pk=None):
+        comment = Comment.objects.select_related('post').filter(pk=pk, is_deleted=False).first()
+        if not comment:
+            return Response({'detail': 'Comentario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        post = comment.post
+        is_post_creator = (post.user_id == request.user.id)
+        is_admin = (request.user.role in [User.Role.ADMIN, User.Role.MODERATOR] or request.user.is_staff)
+        if not (is_post_creator or is_admin):
+            return Response(
+                {'detail': 'Solo el creador de la publicación puede fijar comentarios.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if comment.is_pinned:
+            comment.is_pinned = False
+            comment.save(update_fields=['is_pinned'])
+        else:
+            pinned_count = Comment.objects.filter(post=post, is_deleted=False, is_pinned=True).count()
+            if pinned_count >= 2:
+                return Response(
+                    {'detail': 'Solo podés fijar hasta 2 comentarios por publicación.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            comment.is_pinned = True
+            comment.save(update_fields=['is_pinned'])
+
+        return Response({
+            'id': comment.id,
+            'is_pinned': comment.is_pinned
+        }, status=status.HTTP_200_OK)
 
 
 class ImageViewSet(viewsets.ModelViewSet):
@@ -342,7 +456,7 @@ class ImageViewSet(viewsets.ModelViewSet):
 
 
 class ReportViewSet(viewsets.ModelViewSet):
-    queryset = Report.objects.all()
+    queryset = Report.objects.select_related('reported_by', 'post', 'comment').all()
     serializer_class = ReportSerializer
     permission_classes = [ReportPermission]
     pagination_class = StandardPagination

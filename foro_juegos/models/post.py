@@ -10,6 +10,7 @@ class Post(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='posts', null=True, blank=True)
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='posts', null=True, blank=True)
     mentioned_users = models.ManyToManyField(User, related_name='mentioned_in_posts', blank=True)
+    likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
     is_deleted = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)

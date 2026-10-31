@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import PostCard from '../components/PostCard';
 import ProfileEditModal from '../components/ProfileEditModal';
+import ReportModal from '../components/ReportModal';
 import { useAuth } from '../context/AuthContext';
 import { getPosts, deletePost, getMyProfile } from '../services/forumService';
 
@@ -27,6 +28,21 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [reportModalState, setReportModalState] = useState({
+    isOpen: false,
+    postId: null,
+    commentId: null,
+    title: '',
+  });
+
+  const handleOpenReport = (postId, title, commentId = null) => {
+    setReportModalState({
+      isOpen: true,
+      postId: postId || null,
+      commentId: commentId || null,
+      title,
+    });
+  };
 
   // Cargar datos completos del perfil del usuario
   const fetchProfileDetails = useCallback(async () => {
@@ -692,13 +708,19 @@ function Profile() {
                         title={post.title}
                         content={post.content}
                         username={user.username}
+                        userId={user.id}
                         userRole={user.role}
                         avatar={userProfile?.avatar || '👾'}
                         game={post.game}
                         category={post.category}
                         mediaItems={post.media_items || []}
+                        commentCount={post.comment_count ?? 0}
+                        likesCount={post.likes_count ?? 0}
+                        isLiked={Boolean(post.is_liked)}
+                        topComments={post.top_comments || []}
                         canDelete={true}
                         onDelete={handleDeletePost}
+                        onReport={handleOpenReport}
                       />
                     ))}
                   </div>
@@ -717,6 +739,7 @@ function Profile() {
                             ? post.user
                             : post.user?.username || 'Usuario'
                         }
+                        userId={post.user_id || (typeof post.user === 'object' ? post.user?.id : null)}
                         userRole={
                           post.user_role || (typeof post.user === 'object' ? post.user.role : 'USER')
                         }
@@ -724,7 +747,12 @@ function Profile() {
                         game={post.game}
                         category={post.category}
                         mediaItems={post.media_items || []}
+                        commentCount={post.comment_count ?? 0}
+                        likesCount={post.likes_count ?? 0}
+                        isLiked={Boolean(post.is_liked)}
+                        topComments={post.top_comments || []}
                         canDelete={false}
+                        onReport={handleOpenReport}
                       />
                     ))}
                   </div>
@@ -736,6 +764,14 @@ function Profile() {
       </main>
 
       <Footer />
+
+      <ReportModal
+        isOpen={reportModalState.isOpen}
+        onClose={() => setReportModalState({ isOpen: false, postId: null, commentId: null, title: '' })}
+        postId={reportModalState.postId}
+        commentId={reportModalState.commentId}
+        title={reportModalState.title}
+      />
 
       {/* Modal de Edición de Perfil */}
       <ProfileEditModal

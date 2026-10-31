@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getCategories, getPosts } from '../services/forumService';
+import { getGames, getCategories, getPosts } from '../services/forumService';
 
 function SearchWithAutocomplete({ onNavigate }) {
   const navigate = useNavigate();
@@ -46,13 +46,14 @@ function SearchWithAutocomplete({ onNavigate }) {
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        const [cats, postsData] = await Promise.all([
+        const [gamesList, cats, postsData] = await Promise.all([
+          getGames({ search: trimmed }),
           getCategories({ search: trimmed }),
           getPosts({ search: trimmed }),
         ]);
 
-        const games = (cats || []).filter((c) => !c.is_genre).slice(0, 5);
-        const genres = (cats || []).filter((c) => c.is_genre).slice(0, 4);
+        const games = (gamesList || []).slice(0, 5);
+        const genres = (cats || []).slice(0, 4);
         const posts = (postsData?.results || []).slice(0, 4);
 
         setSuggestions({ games, genres, posts });
@@ -80,7 +81,7 @@ function SearchWithAutocomplete({ onNavigate }) {
 
   const handleSelectGame = (game) => {
     setIsOpen(false);
-    navigate(`/?category=${game.id}`);
+    navigate(`/?game=${game.id}`);
     if (onNavigate) onNavigate();
   };
 

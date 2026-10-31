@@ -213,6 +213,19 @@ export async function deletePost(id) {
   return true;
 }
 
+export async function togglePostLike(postId) {
+  const response = await fetchWithAuth(`${API_URL}/posts/${postId}/like/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Error al procesar el Me gusta');
+  }
+  return await response.json();
+}
+
 /* ==========================================================================
    COMENTARIOS
    ========================================================================== */
@@ -255,12 +268,38 @@ export async function deleteComment(id) {
   return true;
 }
 
+export async function toggleCommentLike(commentId) {
+  const response = await fetchWithAuth(`${API_URL}/comments/${commentId}/like/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Error al procesar el Me gusta en el comentario');
+  }
+  return await response.json();
+}
+
+export async function toggleCommentPin(commentId) {
+  const response = await fetchWithAuth(`${API_URL}/comments/${commentId}/pin/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Error al fijar o desfijar el comentario');
+  }
+  return await response.json();
+}
+
 /* ==========================================================================
    REPORTES / MODERACIÓN
    ========================================================================== */
 
 export async function getReports() {
-  const response = await fetchWithAuth(`${API_URL}/reports/`);
+  const response = await fetchWithAuth(`${API_URL}/reports/?page_size=100`);
   if (!response.ok) {
     throw new Error('Error al cargar los reportes de moderación');
   }
@@ -306,12 +345,39 @@ export async function updateReportStatus(id, status) {
    ========================================================================== */
 
 export async function getUsers() {
-  const response = await fetchWithAuth(`${API_URL}/users/`);
+  const response = await fetchWithAuth(`${API_URL}/users/?page_size=100`);
   if (!response.ok) {
     throw new Error('Error al cargar los usuarios');
   }
   const data = await response.json();
   return extractResults(data);
+}
+
+export async function changeUserRole(userId, role) {
+  const response = await fetchWithAuth(`${API_URL}/users/${userId}/change-role/`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Error al cambiar el rol del usuario');
+  }
+  return await response.json();
+}
+
+export async function toggleUserBan(userId, isActive) {
+  const payload = isActive !== undefined ? { is_active: isActive } : {};
+  const response = await fetchWithAuth(`${API_URL}/users/${userId}/ban/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Error al banear/desbanear al usuario');
+  }
+  return await response.json();
 }
 
 /* ==========================================================================

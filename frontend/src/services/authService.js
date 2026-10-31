@@ -1,5 +1,8 @@
-// Utilizamos ruta relativa para pasar a través del proxy de Vite (M5)
-export const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Configuración de la URL de la API (soporta proxy local y fallback de producción en Render)
+const rawEnvUrl = import.meta.env.VITE_API_URL;
+export const API_URL = (rawEnvUrl && !rawEnvUrl.includes('<') && !rawEnvUrl.includes('tu-url'))
+  ? rawEnvUrl
+  : (import.meta.env.DEV ? '/api' : 'https://proyecto-programaci-n-foro-de-juegos.onrender.com/api');
 
 export const SESSION_KEY = 'user';
 export const TOKEN_KEY = 'access_token';
@@ -34,7 +37,7 @@ export async function fetchWithAuth(url, options = {}) {
 
   let response = await fetch(url, options);
 
-  if (response.status === 401 && token) {
+  if (response.status === 401) {
     const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
     if (refresh) {
       try {
@@ -50,18 +53,27 @@ export async function fetchWithAuth(url, options = {}) {
           // Actualizar token y reintentar
           options.headers['Authorization'] = `Bearer ${data.access}`;
           response = await fetch(url, options);
-        } else {
-          // Refresh falló, la sesión realmente expiró
-          throw new Error('Refresh token expired');
+          return response;
         }
       } catch (error) {
-        // Falló el refresh, deslogueamos forzosamente
-        localStorage.removeItem(SESSION_KEY);
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        window.dispatchEvent(new Event('storage')); // Notificamos a AuthContext
-        return response; // Devolvemos el 401 original
+        // Continúa hacia limpieza de sesión expirada
       }
+    }
+
+    if (token || localStorage.getItem(SESSION_KEY)) {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+      }
+    }
+
+    const method = (options.method || 'GET').toUpperCase();
+    if (method === 'GET' && token) {
+      const cleanHeaders = { ...options.headers };
+      delete cleanHeaders['Authorization'];
+      response = await fetch(url, { ...options, headers: cleanHeaders });
     }
   }
 

@@ -1,0 +1,30 @@
+databases:
+  - name: forodb
+    databaseName: programaciondb
+    user: postgres
+    plan: free
+
+services:
+  - type: web
+    name: foro-juegos-api
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "python manage.py migrate --noinput && gunicorn foro.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: forodb
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com,https://*.vercel.app"
+      - key: CLOUDINARY_URL
+        value: "cloudinary://344365379116465:Z2vPcxfoVhrhT3oGCJJwlaFtLpw@orvlu9xb"
+      - key: API_RAWG_KEY
+        value: "39cdc0c7c0b64af59a028429c05a935d"
