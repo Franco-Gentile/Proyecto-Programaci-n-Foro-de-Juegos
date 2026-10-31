@@ -11,7 +11,7 @@
 - **URL de la API:** https://proyecto-programaci-n-foro-de-juegos.onrender.com
 - **Documentación Swagger / OpenAPI:** https://proyecto-programaci-n-foro-de-juegos.onrender.com/api/docs/
 - **Health Check de la API:** https://proyecto-programaci-n-foro-de-juegos.onrender.com/api/health/
-- **URL del Frontend:** https://proyecto-programaci-n-foro-de-juegos-mgqq91f1y-franco-gentile.vercel.app
+- **URL del Frontend:** https://proyecto-programaci-n-foro-de-juegos-git-tp10-franco-gentile.vercel.app
 - **Cloudinary Media URL Base:** `https://res.cloudinary.com/orvlu9xb/image/upload/`
 
 ---
