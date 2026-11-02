@@ -213,7 +213,7 @@ function GamesCatalog() {
                             boxShadow: '1.5px 1.5px 0px var(--border-dark)',
                           }}
                         >
-                          Ver Discusiones 💬
+                          Ver Discusiones ({game.post_count ?? 0}) 💬
                         </Link>
                       </div>
                     </div>

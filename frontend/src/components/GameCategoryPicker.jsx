@@ -142,6 +142,10 @@ function GameCategoryPicker({
       const imported = res.game;
       if (imported) {
         onSelectGame(imported);
+        setInitialData((prev) => ({
+          ...prev,
+          games: [imported, ...prev.games.filter((g) => g.id !== imported.id)],
+        }));
         // Si el juego importado trajo géneros y aún no hay género seleccionado, podemos seleccionarle el primero
         if (!selectedCategory && imported.categories && imported.categories.length > 0) {
           onSelectCategory(imported.categories[0]);
@@ -150,11 +154,7 @@ function GameCategoryPicker({
       setIsOpen(false);
       setQuery('');
     } catch (err) {
-      if (err.message && (err.message.includes('permission') || err.message.includes('permiso') || err.message.includes('403') || err.message.includes('credenciales'))) {
-        setImportError('Solo los administradores o moderadores pueden incorporar títulos nuevos desde RAWG.');
-      } else {
-        setImportError(err.message || 'Error al importar juego de RAWG.');
-      }
+      setImportError(err.message || 'Error al importar juego de RAWG.');
     } finally {
       setImportingSlug(null);
     }

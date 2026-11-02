@@ -367,7 +367,7 @@ function CreatePost() {
                       color: 'var(--text-dark)',
                     }}
                   >
-                    📎 ADJUNTAR MULTIMEDIA (ESTILO X)
+                    📎 ADJUNTAR MULTIMEDIA
                   </span>
                   <span className="text-muted small">
                     {imageFiles.length > 0

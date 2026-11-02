@@ -14,26 +14,11 @@ import {
   createComment,
   deleteComment,
   deletePost,
+  togglePostLike,
+  toggleCommentLike,
+  toggleCommentPin,
 } from '../services/forumService';
-
-function getTimeAgo(dateString) {
-  if (!dateString) return 'Hace un momento';
-  const date = new Date(dateString);
-  const now = new Date();
-  const seconds = Math.floor((now - date) / 1000);
-
-  if (seconds < 60) return `Hace un momento`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `Hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Hace ${hours} hs`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `Hace ${days} d`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `Hace ${months} meses`;
-  const years = Math.floor(days / 365);
-  return `Hace ${years} años`;
-}
+import { sortCommentsList, getTimeAgo } from '../utils/comments';
 
 function PostDetail() {
   const { id } = useParams();
@@ -44,6 +29,7 @@ function PostDetail() {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [likingPost, setLikingPost] = useState(false);
 
   // Formulario nuevo comentario
   const [newComment, setNewComment] = useState('');
@@ -67,7 +53,7 @@ function PostDetail() {
         getComments(id),
       ]);
       setPost(postData);
-      setComments(commentsData);
+      setComments(sortCommentsList(commentsData || []));
     } catch (err) {
       setError(err.message || 'No se pudo cargar la publicación.');
     } finally {
@@ -78,6 +64,77 @@ function PostDetail() {
   useEffect(() => {
     loadPostAndComments();
   }, [loadPostAndComments]);
+
+  const handleTogglePostLike = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (!post || likingPost) return;
+
+    const prevLiked = Boolean(post.is_liked);
+    const prevCount = post.likes_count || 0;
+    setPost((prev) => ({
+      ...prev,
+      is_liked: !prevLiked,
+      likes_count: prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1,
+    }));
+    setLikingPost(true);
+
+    try {
+      const res = await togglePostLike(post.id);
+      setPost((prev) => ({
+        ...prev,
+        is_liked: Boolean(res.is_liked),
+        likes_count: res.likes_count ?? 0,
+      }));
+    } catch (err) {
+      setPost((prev) => ({
+        ...prev,
+        is_liked: prevLiked,
+        likes_count: prevCount,
+      }));
+    } finally {
+      setLikingPost(false);
+    }
+  };
+
+  const handleToggleCommentLike = async (commentId) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const res = await toggleCommentLike(commentId);
+      setComments((prev) =>
+        sortCommentsList(
+          prev.map((c) =>
+            c.id === commentId
+              ? { ...c, is_liked: Boolean(res.is_liked), likes_count: res.likes_count ?? 0 }
+              : c
+          )
+        )
+      );
+    } catch (err) {
+      setCommentError(err.message || 'No se pudo procesar el Me gusta');
+    }
+  };
+
+  const handleToggleCommentPin = async (commentId) => {
+    if (!user) return;
+    try {
+      const res = await toggleCommentPin(commentId);
+      setComments((prev) =>
+        sortCommentsList(
+          prev.map((c) =>
+            c.id === commentId ? { ...c, is_pinned: Boolean(res.is_pinned) } : c
+          )
+        )
+      );
+    } catch (err) {
+      setCommentError(err.message || 'Error al fijar o desfijar el comentario');
+    }
+  };
 
   const handleCreateComment = async (e) => {
     e.preventDefault();
@@ -90,7 +147,7 @@ function PostDetail() {
         post_id: id,
         content: newComment.trim(),
       });
-      setComments((prev) => [created, ...prev]);
+      setComments((prev) => sortCommentsList([created, ...prev]));
       setNewComment('');
     } catch (err) {
       setCommentError(err.message || 'No se pudo enviar el comentario');
@@ -105,7 +162,7 @@ function PostDetail() {
       await deleteComment(commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
-      alert(err.message || 'Error al eliminar el comentario');
+      setCommentError(err.message || 'Error al eliminar el comentario');
     }
   };
 
@@ -115,7 +172,7 @@ function PostDetail() {
       await deletePost(id);
       navigate('/');
     } catch (err) {
-      alert(err.message || 'Error al eliminar la publicación');
+      setError(err.message || 'Error al eliminar la publicación');
     }
   };
 
@@ -126,6 +183,16 @@ function PostDetail() {
     if (authorUsername && authorUsername === user.username) return true;
     return false;
   };
+
+  const canPinComments = Boolean(
+    user &&
+      post &&
+      ((post.user?.id && Number(post.user.id) === Number(user.id)) ||
+        (typeof post.user === 'string' && post.user === user.username) ||
+        (post.user?.username && post.user.username === user.username) ||
+        user.role === 'ADMIN' ||
+        user.role === 'MODERATOR')
+  );
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -296,13 +363,43 @@ function PostDetail() {
                   <FormattedContent content={post.content} />
                 </div>
 
-                {/* Cuadrícula Multimedia Estilo X (1-4 fotos o video / YouTube) */}
+                {/* Cuadrícula Multimedia (1-4 fotos o video / YouTube) */}
                 <MediaGrid
                   mediaItems={post.media_items || []}
                   imageUrl={post.images && post.images.length > 0 ? post.images[0].image_url : null}
                 />
-              </article>
 
+                {/* Barra de Likes y Discusiones del Post */}
+                <div className="d-flex align-items-center justify-content-between pt-3 mt-3 border-top">
+                  <button
+                    type="button"
+                    onClick={handleTogglePostLike}
+                    disabled={likingPost}
+                    aria-pressed={Boolean(post.is_liked)}
+                    className="btn btn-sm d-inline-flex align-items-center gap-2"
+                    style={{
+                      backgroundColor: post.is_liked ? '#fee2e2' : '#f8fafc',
+                      color: post.is_liked ? '#dc2626' : '#334155',
+                      border: `2px solid ${post.is_liked ? '#ef4444' : 'var(--border-dark)'}`,
+                      borderRadius: '20px',
+                      padding: '5px 14px',
+                      fontFamily: 'var(--font-pixel)',
+                      fontSize: '11px',
+                      boxShadow: '2px 2px 0px var(--border-dark)',
+                    }}
+                  >
+                    <span>{post.is_liked ? '❤️' : '🤍'}</span>
+                    <span>{post.likes_count || 0} Me gusta</span>
+                  </button>
+
+                  <span
+                    className="text-muted"
+                    style={{ fontFamily: 'var(--font-pixel)', fontSize: '11px' }}
+                  >
+                    💬 {comments.length} {comments.length === 1 ? 'Discusión' : 'Discusiones'}
+                  </span>
+                </div>
+              </article>
 
               {/* Sección de Comentarios */}
               <section
@@ -314,7 +411,7 @@ function PostDetail() {
                   boxShadow: '5px 5px 0px var(--border-dark)',
                 }}
               >
-                <div className="d-flex align-items-center justify-content-between mb-4 border-bottom pb-2">
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 border-bottom pb-2">
                   <h3
                     className="mb-0"
                     style={{
@@ -325,6 +422,11 @@ function PostDetail() {
                   >
                     💬 Respuestas y Discusión ({comments.length})
                   </h3>
+                  {canPinComments && comments.length > 0 && (
+                    <span className="badge bg-warning-subtle text-dark border" style={{ fontSize: '11px' }}>
+                      📌 Podés fijar hasta 2 comentarios destacados
+                    </span>
+                  )}
                 </div>
 
                 {/* Formulario de nuevo comentario */}
@@ -347,7 +449,6 @@ function PostDetail() {
                           boxShadow: '2px 2px 0px var(--border-dark)',
                         }}
                       />
-
                     </div>
                     <div className="d-flex justify-content-end">
                       <button
@@ -410,14 +511,14 @@ function PostDetail() {
                           key={comment.id}
                           className="p-3"
                           style={{
-                            backgroundColor: '#f8fafc',
-                            border: '2px solid var(--border-dark)',
+                            backgroundColor: comment.is_pinned ? '#fffbeb' : '#f8fafc',
+                            border: comment.is_pinned ? '2.5px solid #f59e0b' : '2px solid var(--border-dark)',
                             borderRadius: '12px',
-                            boxShadow: '2px 2px 0px var(--border-dark)',
+                            boxShadow: comment.is_pinned ? '3px 3px 0px #d97706' : '2px 2px 0px var(--border-dark)',
                           }}
                         >
-                          <div className="d-flex align-items-center justify-content-between mb-2">
-                            <div className="d-flex align-items-center gap-2">
+                          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                            <div className="d-flex align-items-center gap-2 flex-wrap">
                               <span
                                 className="badge"
                                 style={{
@@ -428,7 +529,7 @@ function PostDetail() {
                                   fontSize: '10px',
                                 }}
                               >
-                                {commentAuthor}
+                                @{commentAuthor}
                               </span>
                               {commentAuthorRole === 'ADMIN' && (
                                 <span className="badge bg-warning text-dark px-1" style={{ fontSize: '9px' }}>
@@ -443,12 +544,68 @@ function PostDetail() {
                                   🛡️ MOD
                                 </span>
                               )}
+                              {comment.is_pinned && (
+                                <span
+                                  className="badge"
+                                  style={{
+                                    backgroundColor: '#fef3c7',
+                                    color: '#b45309',
+                                    border: '1px solid #f59e0b',
+                                    fontFamily: 'var(--font-pixel)',
+                                    fontSize: '9px',
+                                  }}
+                                >
+                                  📌 Fijado por el creador
+                                </span>
+                              )}
                               <span className="text-muted small" style={{ fontSize: '11px' }}>
                                 {getTimeAgo(comment.created_at)}
                               </span>
                             </div>
 
                             <div className="d-flex align-items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCommentLike(comment.id)}
+                                aria-pressed={Boolean(comment.is_liked)}
+                                title={comment.is_liked ? 'Quitar Me gusta' : 'Dar Me gusta al comentario'}
+                                className="btn btn-sm p-0 px-2 d-inline-flex align-items-center gap-1"
+                                style={{
+                                  backgroundColor: comment.is_liked ? '#fee2e2' : '#ffffff',
+                                  color: comment.is_liked ? '#dc2626' : '#334155',
+                                  border: `1.5px solid ${comment.is_liked ? '#ef4444' : 'var(--border-dark)'}`,
+                                  borderRadius: '14px',
+                                  fontSize: '10px',
+                                  fontFamily: 'var(--font-pixel)',
+                                }}
+                              >
+                                <span>{comment.is_liked ? '❤️' : '🤍'}</span>
+                                <span>{comment.likes_count || 0}</span>
+                              </button>
+
+                              {canPinComments && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleCommentPin(comment.id)}
+                                  title={
+                                    comment.is_pinned
+                                      ? 'Desfijar comentario'
+                                      : 'Fijar este comentario arriba (máx 2)'
+                                  }
+                                  className="btn btn-sm p-0 px-2"
+                                  style={{
+                                    backgroundColor: comment.is_pinned ? '#fef3c7' : '#ffffff',
+                                    color: comment.is_pinned ? '#b45309' : '#475569',
+                                    border: `1.5px solid ${comment.is_pinned ? '#f59e0b' : 'var(--border-dark)'}`,
+                                    borderRadius: '14px',
+                                    fontSize: '10px',
+                                    fontFamily: 'var(--font-pixel)',
+                                  }}
+                                >
+                                  📌 {comment.is_pinned ? 'Desfijar' : 'Fijar'}
+                                </button>
+                              )}
+
                               {isOwnerOrAdmin(commentAuthorId, commentAuthor) && (
                                 <button
                                   type="button"
@@ -481,7 +638,6 @@ function PostDetail() {
 
                           <FormattedContent content={comment.content} />
                         </div>
-
                       );
                     })}
                   </div>

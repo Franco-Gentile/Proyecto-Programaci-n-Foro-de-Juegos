@@ -13,9 +13,9 @@ class RawgService:
 
     @classmethod
     def get_api_key(cls):
-        api_key = os.environ.get('API_RAWG_KEY')
+        api_key = os.environ.get('RAWG_API_KEY') or os.environ.get('API_RAWG_KEY') or getattr(settings, 'RAWG_API_KEY', None)
         if not api_key:
-            raise ValueError("API_RAWG_KEY no está configurada en el entorno.")
+            raise ValueError("RAWG_API_KEY no está configurada en el entorno.")
         return api_key
 
     @classmethod

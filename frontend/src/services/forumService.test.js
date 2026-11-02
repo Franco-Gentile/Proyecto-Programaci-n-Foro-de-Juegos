@@ -19,6 +19,11 @@ import {
   getGames,
   searchRawg,
   importRawgGame,
+  togglePostLike,
+  toggleCommentLike,
+  toggleCommentPin,
+  changeUserRole,
+  toggleUserBan,
 } from './forumService';
 
 // Mock localStorage
@@ -259,5 +264,43 @@ describe('forumService - Games & RAWG', () => {
 
     const result = await importRawgGame('dark-souls');
     expect(result.game.name).toBe('Dark Souls');
+  });
+
+  it('alterna like y pin en posts/comentarios y gestiona roles/baneo', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 1, is_liked: true, likes_count: 5 }),
+    });
+    const postLike = await togglePostLike(1);
+    expect(postLike.is_liked).toBe(true);
+    expect(postLike.likes_count).toBe(5);
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 2, is_liked: true, likes_count: 3 }),
+    });
+    const commentLike = await toggleCommentLike(2);
+    expect(commentLike.is_liked).toBe(true);
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 2, is_pinned: true }),
+    });
+    const pinned = await toggleCommentPin(2);
+    expect(pinned.is_pinned).toBe(true);
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 4, role: 'MODERATOR' }),
+    });
+    const roleUpdated = await changeUserRole(4, 'MODERATOR');
+    expect(roleUpdated.role).toBe('MODERATOR');
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 4, is_active: false }),
+    });
+    const banned = await toggleUserBan(4, false);
+    expect(banned.is_active).toBe(false);
   });
 });

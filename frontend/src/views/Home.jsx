@@ -7,31 +7,18 @@ import PostCard from '../components/PostCard';
 import ReportModal from '../components/ReportModal';
 import { useAuth } from '../context/AuthContext';
 import { getPosts, deletePost } from '../services/forumService';
-
-function getTimeAgo(dateString) {
-  if (!dateString) return 'Hace un momento';
-  const date = new Date(dateString);
-  const now = new Date();
-  const seconds = Math.floor((now - date) / 1000);
-
-  if (seconds < 60) return `Hace un momento`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `Hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Hace ${hours} hs`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `Hace ${days} d`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `Hace ${months} meses`;
-  const years = Math.floor(days / 365);
-  return `Hace ${years} años`;
-}
+import { getTimeAgo } from '../utils/comments';
 
 function Home() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [reportModalState, setReportModalState] = useState({ isOpen: false, postId: null, title: '' });
+  const [reportModalState, setReportModalState] = useState({
+    isOpen: false,
+    postId: null,
+    commentId: null,
+    title: '',
+  });
   const [feedbackMsg, setFeedbackMsg] = useState('');
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,16 +51,17 @@ function Home() {
     fetchPostList();
   }, [fetchPostList]);
 
-  const handleOpenReport = (postId, postTitle) => {
+  const handleOpenReport = (postId, postTitle, commentId = null) => {
     setReportModalState({
       isOpen: true,
-      postId,
+      postId: postId || null,
+      commentId: commentId || null,
       title: postTitle,
     });
   };
 
   const handleCloseReport = () => {
-    setReportModalState({ isOpen: false, postId: null, title: '' });
+    setReportModalState({ isOpen: false, postId: null, commentId: null, title: '' });
   };
 
   const handleDeletePost = async (postId) => {
@@ -87,7 +75,7 @@ function Home() {
       setTimeout(() => setFeedbackMsg(''), 3000);
       setPosts((prev) => prev.filter((p) => p.id !== postId));
     } catch (err) {
-      alert(err.message || 'No se pudo eliminar la publicación.');
+      setError(err.message || 'No se pudo eliminar la publicación.');
     }
   };
 
@@ -205,7 +193,13 @@ function Home() {
 
                 {user && (
                   <Link
-                    to="/create-post"
+                    to={
+                      gameParam
+                        ? `/create-post?game=${gameParam}`
+                        : categoryParam
+                        ? `/create-post?category=${categoryParam}`
+                        : '/create-post'
+                    }
                     className="btn-retro-auth text-decoration-none"
                     style={{
                       backgroundColor: '#6366f1',
@@ -283,7 +277,13 @@ function Home() {
                     </p>
                     {user ? (
                       <Link
-                        to="/create-post"
+                        to={
+                          gameParam
+                            ? `/create-post?game=${gameParam}`
+                            : categoryParam
+                            ? `/create-post?category=${categoryParam}`
+                            : '/create-post'
+                        }
                         className="btn btn-primary"
                         style={{
                           border: '2px solid var(--border-dark)',
@@ -310,6 +310,7 @@ function Home() {
                       title={post.title}
                       content={post.content}
                       username={typeof post.user === 'string' ? post.user : (post.user?.username || 'Anónimo')}
+                      userId={post.user_id || (typeof post.user === 'object' ? post.user?.id : null)}
                       userRole={post.user_role || (typeof post.user === 'object' ? post.user.role : 'USER')}
                       avatar="🎮"
                       timeAgo={getTimeAgo(post.created_at)}
@@ -317,6 +318,10 @@ function Home() {
                       category={post.category}
                       mediaItems={post.media_items || []}
                       imageUrl={post.images && post.images.length > 0 ? post.images[0].image_url : null}
+                      commentCount={post.comment_count ?? 0}
+                      likesCount={post.likes_count ?? 0}
+                      isLiked={Boolean(post.is_liked)}
+                      topComments={post.top_comments || []}
                       onReport={handleOpenReport}
                       onDelete={handleDeletePost}
                       canDelete={isUserOwnerOrAdmin(post)}
@@ -332,6 +337,7 @@ function Home() {
         isOpen={reportModalState.isOpen}
         onClose={handleCloseReport}
         postId={reportModalState.postId}
+        commentId={reportModalState.commentId}
         title={reportModalState.title}
       />
 

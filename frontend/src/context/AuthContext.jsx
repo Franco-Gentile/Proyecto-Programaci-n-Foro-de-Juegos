@@ -4,20 +4,36 @@ import {
   register as authServiceRegister,
   logout as authServiceLogout,
   getSession,
+  getAuthToken,
   SESSION_KEY,
+  TOKEN_KEY,
 } from '../services/authService';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => getSession());
+  const [user, setUser] = useState(() => {
+    const session = getSession();
+    const token = getAuthToken();
+    if (session && !token) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return session;
+  });
 
-  // Mantiene la sesión sincronizada entre pestañas: si otra pestaña hace
-  // login/logout (o borra el storage), esta se actualiza en consecuencia.
+  // Mantiene la sesión sincronizada entre pestañas y ante expiración de token
   useEffect(() => {
     const handleStorage = (event) => {
-      if (event.key === SESSION_KEY || event.key === null) {
-        setUser(getSession());
+      if (!event.key || event.key === SESSION_KEY || event.key === TOKEN_KEY) {
+        const session = getSession();
+        const token = getAuthToken();
+        if (session && !token) {
+          localStorage.removeItem(SESSION_KEY);
+          setUser(null);
+        } else {
+          setUser(session);
+        }
       }
     };
     window.addEventListener('storage', handleStorage);
