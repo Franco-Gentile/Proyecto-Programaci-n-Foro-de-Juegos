@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 class RawgSearchView(APIView):
     """
     Busca juegos en la API de RAWG con rate limiting.
-    Disponible para todos los usuarios con rate limiting.
+    Requiere autenticación para proteger la cuota de la API key del backend.
     """
-    permission_classes = [permissions.AllowAny]
-    throttle_classes = [throttling.AnonRateThrottle, throttling.UserRateThrottle]
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
         query = request.query_params.get('q', '').strip()

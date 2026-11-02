@@ -7,25 +7,7 @@ import PostCard from '../components/PostCard';
 import ReportModal from '../components/ReportModal';
 import { useAuth } from '../context/AuthContext';
 import { getPosts, deletePost } from '../services/forumService';
-
-function getTimeAgo(dateString) {
-  if (!dateString) return 'Hace un momento';
-  const date = new Date(dateString);
-  const now = new Date();
-  const seconds = Math.floor((now - date) / 1000);
-
-  if (seconds < 60) return `Hace un momento`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `Hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Hace ${hours} hs`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `Hace ${days} d`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `Hace ${months} meses`;
-  const years = Math.floor(days / 365);
-  return `Hace ${years} años`;
-}
+import { getTimeAgo } from '../utils/comments';
 
 function Home() {
   const [posts, setPosts] = useState([]);
@@ -93,7 +75,7 @@ function Home() {
       setTimeout(() => setFeedbackMsg(''), 3000);
       setPosts((prev) => prev.filter((p) => p.id !== postId));
     } catch (err) {
-      alert(err.message || 'No se pudo eliminar la publicación.');
+      setError(err.message || 'No se pudo eliminar la publicación.');
     }
   };
 

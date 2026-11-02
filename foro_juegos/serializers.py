@@ -208,12 +208,17 @@ class CommentSerializer(serializers.ModelSerializer):
     def get_likes_count(self, obj):
         if hasattr(obj, 'num_likes'):
             return obj.num_likes
+        if 'likes' in getattr(obj, '_prefetched_objects_cache', {}):
+            return len(obj.likes.all())
         return obj.likes.count()
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
         if request and request.user and request.user.is_authenticated:
-            return obj.likes.filter(pk=request.user.pk).exists()
+            user_id = request.user.pk
+            if 'likes' in getattr(obj, '_prefetched_objects_cache', {}):
+                return any(u.pk == user_id for u in obj.likes.all())
+            return obj.likes.filter(pk=user_id).exists()
         return False
 
 
@@ -256,18 +261,31 @@ class PostSerializer(serializers.ModelSerializer):
         return [{'id': u.id, 'username': u.username, 'role': u.role} for u in obj.mentioned_users.all()]
 
     def get_likes_count(self, obj):
+        if hasattr(obj, 'num_likes'):
+            return obj.num_likes
+        if 'likes' in getattr(obj, '_prefetched_objects_cache', {}):
+            return len(obj.likes.all())
         return obj.likes.count()
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
         if request and request.user and request.user.is_authenticated:
-            return obj.likes.filter(pk=request.user.pk).exists()
+            user_id = request.user.pk
+            if 'likes' in getattr(obj, '_prefetched_objects_cache', {}):
+                return any(u.pk == user_id for u in obj.likes.all())
+            return obj.likes.filter(pk=user_id).exists()
         return False
 
     def get_comment_count(self, obj):
+        if hasattr(obj, 'num_comments'):
+            return obj.num_comments
+        if hasattr(obj, 'prefetched_active_comments'):
+            return len(obj.prefetched_active_comments)
         return obj.comments.filter(is_deleted=False).count()
 
     def get_top_comments(self, obj):
+        if hasattr(obj, 'prefetched_active_comments'):
+            return CommentSerializer(obj.prefetched_active_comments[:2], many=True, context=self.context).data
         qs = (
             obj.comments.filter(is_deleted=False)
             .select_related('user', 'post')
@@ -314,18 +332,31 @@ class PostListSerializer(serializers.ModelSerializer):
         return [{'id': u.id, 'username': u.username, 'role': u.role} for u in obj.mentioned_users.all()]
 
     def get_likes_count(self, obj):
+        if hasattr(obj, 'num_likes'):
+            return obj.num_likes
+        if 'likes' in getattr(obj, '_prefetched_objects_cache', {}):
+            return len(obj.likes.all())
         return obj.likes.count()
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
         if request and request.user and request.user.is_authenticated:
-            return obj.likes.filter(pk=request.user.pk).exists()
+            user_id = request.user.pk
+            if 'likes' in getattr(obj, '_prefetched_objects_cache', {}):
+                return any(u.pk == user_id for u in obj.likes.all())
+            return obj.likes.filter(pk=user_id).exists()
         return False
 
     def get_comment_count(self, obj):
+        if hasattr(obj, 'num_comments'):
+            return obj.num_comments
+        if hasattr(obj, 'prefetched_active_comments'):
+            return len(obj.prefetched_active_comments)
         return obj.comments.filter(is_deleted=False).count()
 
     def get_top_comments(self, obj):
+        if hasattr(obj, 'prefetched_active_comments'):
+            return CommentSerializer(obj.prefetched_active_comments[:2], many=True, context=self.context).data
         qs = (
             obj.comments.filter(is_deleted=False)
             .select_related('user', 'post')
@@ -350,21 +381,21 @@ class ImageSerializer(serializers.ModelSerializer):
 
 
 class ReportSerializer(serializers.ModelSerializer):
-    user = PublicUserSerializer(source='reported_by', read_only=True)
-    reporter = PublicUserSerializer(source='reported_by', read_only=True)
     reported_by = PublicUserSerializer(read_only=True)
-    post = serializers.StringRelatedField(read_only=True)
-    comment = serializers.StringRelatedField(read_only=True)
+    post = serializers.SerializerMethodField()
+    comment = serializers.SerializerMethodField()
 
     post_id = serializers.PrimaryKeyRelatedField(
         queryset=Post.objects.all(),
         source='post',
+        write_only=True,
         required=False,
         allow_null=True
     )
     comment_id = serializers.PrimaryKeyRelatedField(
         queryset=Comment.objects.all(),
         source='comment',
+        write_only=True,
         required=False,
         allow_null=True
     )
@@ -372,11 +403,25 @@ class ReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
         fields = [
-            'id', 'user', 'reporter', 'reported_by',
+            'id', 'reported_by',
             'post', 'post_id', 'comment', 'comment_id',
             'reason', 'status', 'created_at'
         ]
-        read_only_fields = ['user', 'reporter', 'reported_by', 'created_at']
+        read_only_fields = ['reported_by', 'post', 'comment', 'created_at']
+
+    def get_post(self, obj):
+        if not obj.post:
+            return None
+        return {'id': obj.post.id, 'title': obj.post.title}
+
+    def get_comment(self, obj):
+        if not obj.comment:
+            return None
+        return {
+            'id': obj.comment.id,
+            'content': obj.comment.content[:120],
+            'post_id': obj.comment.post_id,
+        }
 
     def validate(self, data):
         post = data.get('post', getattr(self.instance, 'post', None))

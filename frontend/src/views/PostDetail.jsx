@@ -18,36 +18,7 @@ import {
   toggleCommentLike,
   toggleCommentPin,
 } from '../services/forumService';
-
-function getTimeAgo(dateString) {
-  if (!dateString) return 'Hace un momento';
-  const date = new Date(dateString);
-  const now = new Date();
-  const seconds = Math.floor((now - date) / 1000);
-
-  if (seconds < 60) return `Hace un momento`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `Hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Hace ${hours} hs`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `Hace ${days} d`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `Hace ${months} meses`;
-  const years = Math.floor(days / 365);
-  return `Hace ${years} años`;
-}
-
-function sortComments(list) {
-  return [...list].sort((a, b) => {
-    if (Boolean(b.is_pinned) !== Boolean(a.is_pinned)) {
-      return b.is_pinned ? 1 : -1;
-    }
-    const likesDiff = (b.likes_count || 0) - (a.likes_count || 0);
-    if (likesDiff !== 0) return likesDiff;
-    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-  });
-}
+import { sortCommentsList, getTimeAgo } from '../utils/comments';
 
 function PostDetail() {
   const { id } = useParams();
@@ -82,7 +53,7 @@ function PostDetail() {
         getComments(id),
       ]);
       setPost(postData);
-      setComments(sortComments(commentsData || []));
+      setComments(sortCommentsList(commentsData || []));
     } catch (err) {
       setError(err.message || 'No se pudo cargar la publicación.');
     } finally {
@@ -136,7 +107,7 @@ function PostDetail() {
     try {
       const res = await toggleCommentLike(commentId);
       setComments((prev) =>
-        sortComments(
+        sortCommentsList(
           prev.map((c) =>
             c.id === commentId
               ? { ...c, is_liked: Boolean(res.is_liked), likes_count: res.likes_count ?? 0 }
@@ -145,7 +116,7 @@ function PostDetail() {
         )
       );
     } catch (err) {
-      alert(err.message || 'No se pudo procesar el Me gusta');
+      setCommentError(err.message || 'No se pudo procesar el Me gusta');
     }
   };
 
@@ -154,14 +125,14 @@ function PostDetail() {
     try {
       const res = await toggleCommentPin(commentId);
       setComments((prev) =>
-        sortComments(
+        sortCommentsList(
           prev.map((c) =>
             c.id === commentId ? { ...c, is_pinned: Boolean(res.is_pinned) } : c
           )
         )
       );
     } catch (err) {
-      alert(err.message || 'Error al fijar o desfijar el comentario');
+      setCommentError(err.message || 'Error al fijar o desfijar el comentario');
     }
   };
 
@@ -176,7 +147,7 @@ function PostDetail() {
         post_id: id,
         content: newComment.trim(),
       });
-      setComments((prev) => sortComments([created, ...prev]));
+      setComments((prev) => sortCommentsList([created, ...prev]));
       setNewComment('');
     } catch (err) {
       setCommentError(err.message || 'No se pudo enviar el comentario');
@@ -191,7 +162,7 @@ function PostDetail() {
       await deleteComment(commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
-      alert(err.message || 'Error al eliminar el comentario');
+      setCommentError(err.message || 'Error al eliminar el comentario');
     }
   };
 
@@ -201,7 +172,7 @@ function PostDetail() {
       await deletePost(id);
       navigate('/');
     } catch (err) {
-      alert(err.message || 'Error al eliminar la publicación');
+      setError(err.message || 'Error al eliminar la publicación');
     }
   };
 
@@ -213,7 +184,7 @@ function PostDetail() {
     return false;
   };
 
-  const isPostCreator = Boolean(
+  const canPinComments = Boolean(
     user &&
       post &&
       ((post.user?.id && Number(post.user.id) === Number(user.id)) ||
@@ -451,7 +422,7 @@ function PostDetail() {
                   >
                     💬 Respuestas y Discusión ({comments.length})
                   </h3>
-                  {isPostCreator && comments.length > 0 && (
+                  {canPinComments && comments.length > 0 && (
                     <span className="badge bg-warning-subtle text-dark border" style={{ fontSize: '11px' }}>
                       📌 Podés fijar hasta 2 comentarios destacados
                     </span>
@@ -612,7 +583,7 @@ function PostDetail() {
                                 <span>{comment.likes_count || 0}</span>
                               </button>
 
-                              {isPostCreator && (
+                              {canPinComments && (
                                 <button
                                   type="button"
                                   onClick={() => handleToggleCommentPin(comment.id)}

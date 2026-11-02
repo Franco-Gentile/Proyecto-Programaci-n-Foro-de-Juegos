@@ -1,7 +1,7 @@
-from django.test import SimpleTestCase, Client
+from django.test import TestCase, Client
 
 
-class HealthCheckTests(SimpleTestCase):
+class HealthCheckTests(TestCase):
     def test_health_check_returns_200(self):
         client = Client()
         response = client.get('/api/health/')
@@ -9,3 +9,4 @@ class HealthCheckTests(SimpleTestCase):
         data = response.json()
         self.assertEqual(data.get('status'), 'ok')
         self.assertEqual(data.get('service'), 'api')
+        self.assertEqual(data.get('database'), 'ok')

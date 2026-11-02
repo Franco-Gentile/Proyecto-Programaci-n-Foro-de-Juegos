@@ -1,4 +1,4 @@
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Prefetch
 from rest_framework import status, viewsets, permissions, throttling
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -30,7 +30,7 @@ class StandardPagination(PageNumberPagination):
 
 class IsSelfOrAdmin(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        return request.user.is_staff or request.user.role == User.Role.ADMIN or obj == request.user
+        return request.user.role == User.Role.ADMIN or obj == request.user
 
 
 class IsAdminOrModerator(permissions.BasePermission):
@@ -142,11 +142,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch', 'post'], permission_classes=[permissions.IsAuthenticated], url_path='change-role')
     def change_role(self, request, pk=None):
-        if not (request.user.is_staff or request.user.role == User.Role.ADMIN):
+        if request.user.role != User.Role.ADMIN:
             return Response({'detail': 'Solo el administrador puede cambiar el rol de los usuarios.'}, status=status.HTTP_403_FORBIDDEN)
         target_user = User.objects.filter(pk=pk, is_deleted=False).first()
         if not target_user:
             return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        if target_user.pk == request.user.pk:
+            return Response({'detail': 'No podés cambiar tu propio rol.'}, status=status.HTTP_400_BAD_REQUEST)
         new_role = request.data.get('role')
         if new_role not in [User.Role.ADMIN, User.Role.MODERATOR, User.Role.USER]:
             return Response({'detail': 'Rol inválido. Opciones permitidas: USER, MODERATOR, ADMIN.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -157,15 +159,15 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post', 'patch'], permission_classes=[permissions.IsAuthenticated], url_path='ban')
     def ban(self, request, pk=None):
-        if not (request.user.is_staff or request.user.role in [User.Role.ADMIN, User.Role.MODERATOR]):
+        if request.user.role not in [User.Role.ADMIN, User.Role.MODERATOR]:
             return Response({'detail': 'No tenés permisos para banear usuarios.'}, status=status.HTTP_403_FORBIDDEN)
         target_user = User.objects.filter(pk=pk, is_deleted=False).first()
         if not target_user:
             return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
         if target_user.pk == request.user.pk:
             return Response({'detail': 'No podés banearte a vos mismo.'}, status=status.HTTP_400_BAD_REQUEST)
-        if target_user.role == User.Role.ADMIN and request.user.role != User.Role.ADMIN:
-            return Response({'detail': 'Un moderador no puede banear a un administrador.'}, status=status.HTTP_403_FORBIDDEN)
+        if target_user.role in [User.Role.ADMIN, User.Role.MODERATOR] and request.user.role != User.Role.ADMIN:
+            return Response({'detail': 'Un moderador no puede banear a un administrador ni a otro moderador.'}, status=status.HTTP_403_FORBIDDEN)
 
         if 'is_active' in request.data:
             target_user.is_active = bool(request.data.get('is_active'))
@@ -225,7 +227,28 @@ class PostViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        qs = Post.objects.filter(is_deleted=False).select_related('user', 'game', 'category').prefetch_related('media_items', 'mentioned_users', 'likes')
+        active_comments_qs = (
+            Comment.objects.filter(is_deleted=False)
+            .select_related('user', 'post')
+            .prefetch_related('mentioned_users', 'likes')
+            .annotate(num_likes=Count('likes', distinct=True))
+            .order_by('-is_pinned', '-num_likes', '-created_at')
+        )
+        qs = (
+            Post.objects.filter(is_deleted=False)
+            .select_related('user', 'game', 'category')
+            .prefetch_related(
+                'media_items',
+                'mentioned_users',
+                'likes',
+                Prefetch('comments', queryset=active_comments_qs, to_attr='prefetched_active_comments'),
+            )
+            .annotate(
+                num_likes=Count('likes', distinct=True),
+                num_comments=Count('comments', filter=Q(comments__is_deleted=False), distinct=True),
+            )
+            .order_by('-created_at')
+        )
         category = self.request.query_params.get('category')
         game = self.request.query_params.get('game')
         user_param = self.request.query_params.get('user')

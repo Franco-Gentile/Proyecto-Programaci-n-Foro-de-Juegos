@@ -3,9 +3,17 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.http import JsonResponse
 from django.conf import settings
+from django.db import connection
+
 
 def health_check(request):
-    return JsonResponse({"status": "ok", "service": "api"})
+    db_status = "ok"
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except Exception:
+        db_status = "error"
+    return JsonResponse({"status": "ok", "service": "api", "database": db_status})
 
 urlpatterns = [
     path('admin/', admin.site.urls),

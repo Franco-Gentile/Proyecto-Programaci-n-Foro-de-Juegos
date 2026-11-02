@@ -4,6 +4,7 @@ import MediaGrid from './MediaGrid';
 import FormattedContent from './FormattedContent';
 import { useAuth } from '../context/AuthContext';
 import { togglePostLike, toggleCommentLike, toggleCommentPin } from '../services/forumService';
+import { sortCommentsList } from '../utils/comments';
 
 function getRoleBadge(role) {
   if (role === 'ADMIN') {
@@ -41,17 +42,6 @@ function getRoleBadge(role) {
   return null;
 }
 
-function sortCommentsList(list) {
-  return [...list].sort((a, b) => {
-    if (Boolean(b.is_pinned) !== Boolean(a.is_pinned)) {
-      return b.is_pinned ? 1 : -1;
-    }
-    const likesDiff = (b.likes_count || 0) - (a.likes_count || 0);
-    if (likesDiff !== 0) return likesDiff;
-    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-  });
-}
-
 function PostCard({
   id,
   title,
@@ -82,21 +72,29 @@ function PostCard({
   const [postIsLiked, setPostIsLiked] = useState(Boolean(isLiked));
   const [likingPost, setLikingPost] = useState(false);
   const [previewComments, setPreviewComments] = useState(() => sortCommentsList(topComments || []));
+  const [actionFeedback, setActionFeedback] = useState('');
+
+  const showFeedback = (msg) => {
+    setActionFeedback(msg);
+    setTimeout(() => setActionFeedback(''), 3500);
+  };
 
   useEffect(() => {
     setPostLikesCount(Number(likesCount) || 0);
     setPostIsLiked(Boolean(isLiked));
-  }, [likesCount, isLiked]);
+  }, [id, likesCount, isLiked]);
 
+  const topCommentsKey = (topComments || []).map((c) => c.id).join(',');
   useEffect(() => {
     setPreviewComments(sortCommentsList(topComments || []));
-  }, [topComments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, topCommentsKey]);
 
   const gameName = game ? (typeof game === 'string' ? game : game.name) : (isGame && tag ? tag : null);
   const categoryName = category ? (typeof category === 'string' ? category : category.name) : (!isGame && tag ? tag : null);
   const hasTags = Boolean(gameName || categoryName);
 
-  const isPostCreator = Boolean(
+  const canPinComments = Boolean(
     user &&
       ((userId && Number(user.id) === Number(userId)) ||
         (username && user.username === username) ||
@@ -127,7 +125,7 @@ function PostCard({
       if (!localStorage.getItem('access_token')) {
         navigate('/login');
       } else {
-        alert(err.message || 'No se pudo registrar el Me gusta.');
+        showFeedback(err.message || 'No se pudo registrar el Me gusta.');
       }
     } finally {
       setLikingPost(false);
@@ -154,7 +152,7 @@ function PostCard({
       if (!localStorage.getItem('access_token')) {
         navigate('/login');
       } else {
-        alert(err.message || 'No se pudo registrar el Me gusta en el comentario.');
+        showFeedback(err.message || 'No se pudo registrar el Me gusta en el comentario.');
       }
     }
   };
@@ -169,7 +167,7 @@ function PostCard({
         )
       );
     } catch (err) {
-      alert(err.message || 'No se pudo fijar el comentario');
+      showFeedback(err.message || 'No se pudo fijar el comentario.');
     }
   };
 
@@ -320,6 +318,16 @@ function PostCard({
         )}
       </div>
 
+      {actionFeedback && (
+        <div
+          className="alert alert-warning py-1 px-2 mt-2 mb-0 small"
+          role="alert"
+          style={{ border: '1.5px solid var(--border-dark)', borderRadius: '8px', fontSize: '12px' }}
+        >
+          {actionFeedback}
+        </div>
+      )}
+
       {/* Sección inferior de comentarios (2 comentarios fijados o con más likes) */}
       {id && (
         <div
@@ -403,7 +411,7 @@ function PostCard({
                       </div>
 
                       <div className="d-flex align-items-center gap-2">
-                        {isPostCreator && (
+                        {canPinComments && (
                           <button
                             type="button"
                             onClick={() => handleToggleCommentPin(comment.id)}

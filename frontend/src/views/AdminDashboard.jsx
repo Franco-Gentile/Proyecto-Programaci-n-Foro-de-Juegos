@@ -297,10 +297,12 @@ function AdminDashboard() {
   const handleDeleteReportedItem = async (report) => {
     if (!window.confirm('¿Seguro que deseás eliminar el contenido reportado? Esta acción es irreversible.')) return;
     try {
-      if (report.post_id) {
-        await deletePost(report.post_id);
-      } else if (report.comment_id) {
-        await deleteComment(report.comment_id);
+      const targetPostId = report.post?.id ?? report.post_id;
+      const targetCommentId = report.comment?.id ?? report.comment_id;
+      if (targetPostId) {
+        await deletePost(targetPostId);
+      } else if (targetCommentId) {
+        await deleteComment(targetCommentId);
       }
       await updateReportStatus(report.id, 'RESOLVED');
       setReports((prev) => prev.map((r) => (r.id === report.id ? { ...r, status: 'RESOLVED' } : r)));
@@ -343,6 +345,12 @@ function AdminDashboard() {
       showNotification('danger', err.message || 'Error al actualizar el estado del usuario');
     }
   };
+
+  const currentAdminRecord = usersList.find(
+    (item) => Number(item.id) === Number(user?.id) || item.username === user?.username
+  );
+  const effectiveRole =
+    currentAdminRecord?.role || user?.role || (user?.username === 'admin' ? 'ADMIN' : 'USER');
 
   return (
     <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: 'var(--bg-main)' }}>
@@ -789,22 +797,22 @@ function AdminDashboard() {
                             
                             <p className="small mb-1">
                               <strong>Tipo:</strong>{' '}
-                              {report.post_id ? (
+                              {report.post || report.post_id ? (
                                 <>
-                                  Publicación ({report.post || `#${report.post_id}`}){' '}
-                                  <Link to={`/posts/${report.post_id}`} className="fw-bold ms-1">
+                                  Publicación ({report.post?.title || report.post || `#${report.post?.id ?? report.post_id}`}){' '}
+                                  <Link to={`/posts/${report.post?.id ?? report.post_id}`} className="fw-bold ms-1">
                                     Ver post →
                                   </Link>
                                 </>
                               ) : (
-                                `Comentario (${report.comment || `#${report.comment_id}`})`
+                                `Comentario (${report.comment?.content || report.comment || `#${report.comment?.id ?? report.comment_id}`})`
                               )}
                             </p>
                             <p className="small mb-3">
                               <strong>Reportado por:</strong>{' '}
-                              {typeof report.reporter === 'string'
-                                ? report.reporter
-                                : report.reporter?.username || report.user?.username || 'Usuario'}
+                              {typeof report.reported_by === 'string'
+                                ? report.reported_by
+                                : report.reported_by?.username || report.reporter?.username || report.user?.username || 'Usuario'}
                             </p>
 
                             {report.status === 'PENDING' && (
@@ -874,17 +882,13 @@ function AdminDashboard() {
                       </thead>
                       <tbody>
                         {usersList.map((u) => {
-                          const currentAdminRecord = usersList.find(
-                            (item) => Number(item.id) === Number(user?.id) || item.username === user?.username
-                          );
-                          const effectiveRole = currentAdminRecord?.role || user?.role || (user?.username === 'admin' ? 'ADMIN' : 'USER');
                           const isSelf = Number(u.id) === Number(user?.id) || u.username === user?.username;
                           const isBanned = u.is_active === false;
                           const canChangeRole = effectiveRole === 'ADMIN';
                           const canBan =
                             !isSelf &&
                             (effectiveRole === 'ADMIN' ||
-                              (effectiveRole === 'MODERATOR' && u.role !== 'ADMIN'));
+                              (effectiveRole === 'MODERATOR' && u.role === 'USER'));
 
                           return (
                             <tr
