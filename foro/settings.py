@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'foro_juegos',
-    'core',
 ]
 
 try:
